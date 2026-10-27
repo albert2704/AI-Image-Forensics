@@ -1,0 +1,36 @@
+{
+  "status": "complete",
+  "message": "TruFor returned a validated manipulation anomaly map and localization reliability map.",
+  "warnings": [
+    "TruFor localizes manipulation anomalies; it does not identify AI-generated pixels.",
+    "The displayed score is not an independently calibrated probability."
+  ],
+  "model": "TruFor",
+  "score": 0.03223882615566254,
+  "score_kind": "local_manipulation",
+  "calibrated_probability": false,
+  "model_revision": "ae54475df6f41a491d7615100feb19263dec13f7",
+  "checkpoint_sha256": "ac1d90e329a72e0d66e8665e123a19e94bfae3209c3ef8a4f9ca3b91578c7844",
+  "device": "cpu",
+  "heatmap_path": "/Users/albert/Work Space/XLA/AI Image Forensics/output/model-verification/trufor-bfree-example/trufor-56a5107699484a5a950f7eb822cfd6b1/localization-heatmap.png",
+  "reliability_path": "/Users/albert/Work Space/XLA/AI Image Forensics/output/model-verification/trufor-bfree-example/trufor-56a5107699484a5a950f7eb822cfd6b1/localization-reliability.png",
+  "overlay_path": "/Users/albert/Work Space/XLA/AI Image Forensics/output/model-verification/trufor-bfree-example/trufor-56a5107699484a5a950f7eb822cfd6b1/localization-overlay.png",
+  "npz_path": "/Users/albert/Work Space/XLA/AI Image Forensics/output/model-verification/trufor-bfree-example/trufor-56a5107699484a5a950f7eb822cfd6b1/result.npz",
+  "imgsize": [
+    1024,
+    1024
+  ],
+  "runtime_seconds": 27.9516971250996,
+  "heatmap_kind": "local_manipulation_anomaly",
+  "heatmap_range": [
+    0,
+    1
+  ],
+  "heatmap_legend": "Fixed scale: blue 0 \u2192 cyan \u2192 yellow \u2192 red 1; higher values indicate stronger manipulation anomalies.",
+  "reliability_legend": "Black 0 \u2192 white 1; lighter pixels indicate greater estimated localization reliability.",
+  "reliability_mean": 0.9959001541137695,
+  "source_url": "https://github.com/grip-unina/B-Free/blob/c6a9f898782fb466b29af01f21960b67415afb0e/code/demo_images/img0002.png",
+  "input_name": "img0002.png",
+  "input_sha256": "0d54da3b1a23b2a9aa235c7cbddfb5100d9a4d019fc6621e2c1126d910eb5f08",
+  "verification_scope": "Real TruFor inference on the upstream B-Free example used in the compression/resizing illustration; no independent accuracy claim."
+}

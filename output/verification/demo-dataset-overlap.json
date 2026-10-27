@@ -1,0 +1,34 @@
+{
+  "protocol_hash": "1c974e78ed2d391de1cd1897ac2513c757b2016917d621e3f38c97362ef5aafa",
+  "checks": [
+    {
+      "demo": "img0000.png",
+      "exact_matches": [],
+      "minimum_phash_hamming_distance": 20,
+      "nearest_source_id": "synthbuster:dalle3:r16ea6386t",
+      "candidate_matches": []
+    },
+    {
+      "demo": "img0001.png",
+      "exact_matches": [],
+      "minimum_phash_hamming_distance": 20,
+      "nearest_source_id": "raise:real:r0a94587ft",
+      "candidate_matches": []
+    },
+    {
+      "demo": "img0002.png",
+      "exact_matches": [],
+      "minimum_phash_hamming_distance": 20,
+      "nearest_source_id": "raise:real:r05718fd6t",
+      "candidate_matches": []
+    },
+    {
+      "demo": "img0003.png",
+      "exact_matches": [],
+      "minimum_phash_hamming_distance": 22,
+      "nearest_source_id": "raise:real:r0d0ff4c2t",
+      "candidate_matches": []
+    }
+  ],
+  "limitation": "Exact pixel and pHash screening cannot exclude semantic relationships."
+}

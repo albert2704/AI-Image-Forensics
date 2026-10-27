@@ -1,0 +1,11 @@
+{
+  "run_id": "89c31f6991c74f058d51a1b126b84cc4",
+  "score_count": 4,
+  "checks": [
+    "json_url HTTP 200 and contents verified",
+    "csv_url HTTP 200 and contents verified",
+    "heatmap_url HTTP 200 and PNG signature verified",
+    "reliability_url HTTP 200 and PNG signature verified",
+    "overlay_url HTTP 200 and PNG signature verified"
+  ]
+}

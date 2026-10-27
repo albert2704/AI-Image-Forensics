@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "run_id": "3a59505881fe472cbc470d29be0e93be",
+  "image": {
+    "name": "processing-fixture.png",
+    "width": 640,
+    "height": 480,
+    "bytes": 110658,
+    "sha256": "697bb1787ce2b3bc8184a2f0b5ab79f024888961c36ab944c714a4094f6330f1",
+    "format": "PNG",
+    "source_mode": "RGB",
+    "source_dimensions": [
+      640,
+      480
+    ],
+    "normalization_notes": []
+  },
+  "config": {
+    "quality": 90,
+    "scale": 0.9,
+    "rounds": 3,
+    "mode": "cumulative",
+    "order": "resize-jpeg",
+    "operation": "combined",
+    "threshold": 0.5
+  },
+  "detector": {
+    "name": "B-Free",
+    "status": "unavailable",
+    "reason": "B-Free repository and weights are not configured."
+  },
+  "variants": [
+    {
+      "id": "original",
+      "label": "Original (normalized)",
+      "round": 0,
+      "width": 640,
+      "height": 480,
+      "bytes": 110658,
+      "format": "PNG",
+      "sha256": "697bb1787ce2b3bc8184a2f0b5ab79f024888961c36ab944c714a4094f6330f1",
+      "parent_sha256": null,
+      "operations": [],
+      "mse": 0.0,
+      "psnr_db": null,
+      "score": null,
+      "raw_logit": null,
+      "error": null,
+      "preview_url": "/runs/3a59505881fe472cbc470d29be0e93be/original.png"
+    },
+    {
+      "id": "round-1",
+      "label": "Round 1",
+      "round": 1,
+      "width": 576,
+      "height": 432,
+      "bytes": 27621,
+      "format": "JPEG",
+      "sha256": "920d35037c6e0c2616b96528df53e8b014ede5251097760de805d3a8570af839",
+      "parent_sha256": "697bb1787ce2b3bc8184a2f0b5ab79f024888961c36ab944c714a4094f6330f1",
+      "operations": [
+        {
+          "type": "resize",
+          "width": 576,
+          "height": 432,
+          "resampler": "Pillow LANCZOS"
+        },
+        {
+          "type": "jpeg",
+          "quality": 90,
+          "subsampling": "4:2:0",
+          "progressive": false
+        }
+      ],
+      "mse": 8.968495477537722,
+      "psnr_db": 38.60360767389783,
+      "score": null,
+      "raw_logit": null,
+      "error": null,
+      "preview_url": "/runs/3a59505881fe472cbc470d29be0e93be/round-1.jpg"
+    },
+    {
+      "id": "round-2",
+      "label": "Round 2",
+      "round": 2,
+      "width": 518,
+      "height": 389,
+      "bytes": 23960,
+      "format": "JPEG",
+      "sha256": "0a0d9cb2408638e6d68dc0a95fb2dbb2a0f181e47faa258bf737edeefbb00ef0",
+      "parent_sha256": "920d35037c6e0c2616b96528df53e8b014ede5251097760de805d3a8570af839",
+      "operations": [
+        {
+          "type": "resize",
+          "width": 518,
+          "height": 389,
+          "resampler": "Pillow LANCZOS"
+        },
+        {
+          "type": "jpeg",
+          "quality": 90,
+          "subsampling": "4:2:0",
+          "progressive": false
+        }
+      ],
+      "mse": 14.669212547104578,
+      "psnr_db": 36.466735596099106,
+      "score": null,
+      "raw_logit": null,
+      "error": null,
+      "preview_url": "/runs/3a59505881fe472cbc470d29be0e93be/round-2.jpg"
+    },
+    {
+      "id": "round-3",
+      "label": "Round 3",
+      "round": 3,
+      "width": 467,
+      "height": 350,
+      "bytes": 20399,
+      "format": "JPEG",
+      "sha256": "6db5a0dfd8ef4e83b47d03dc3bfe863245ecbf182db0a76b9f2e0fe23a635e09",
+      "parent_sha256": "0a0d9cb2408638e6d68dc0a95fb2dbb2a0f181e47faa258bf737edeefbb00ef0",
+      "operations": [
+        {
+          "type": "resize",
+          "width": 467,
+          "height": 350,
+          "resampler": "Pillow LANCZOS"
+        },
+        {
+          "type": "jpeg",
+          "quality": 90,
+          "subsampling": "4:2:0",
+          "progressive": false
+        }
+      ],
+      "mse": 20.00001835423677,
+      "psnr_db": 35.12049966646924,
+      "score": null,
+      "raw_logit": null,
+      "error": null,
+      "preview_url": "/runs/3a59505881fe472cbc470d29be0e93be/round-3.jpg"
+    }
+  ],
+  "summary": {
+    "score_min": null,
+    "score_max": null,
+    "flip_count": null,
+    "warnings": [
+      "A detector score is model evidence, not a calibrated probability of authenticity.",
+      "Derivatives of one image are correlated; persistence is not independent corroboration.",
+      "JPEG quality is an encoder setting, not a measurement of prior compression."
+    ],
+    "regional_scan_recommended": false,
+    "title": "Image measurements ready; detector evidence incomplete",
+    "text": "Compression and resizing were measured. No authenticity conclusion is available until a configured detector successfully scores every image."
+  },
+  "regional": {
+    "status": "not_requested",
+    "message": "Optional TruFor scan evaluates manipulation anomalies, not AI origin."
+  },
+  "exports": {
+    "json_url": "/runs/3a59505881fe472cbc470d29be0e93be/report.json",
+    "csv_url": "/runs/3a59505881fe472cbc470d29be0e93be/measurements.csv"
+  },
+  "provenance": {
+    "python": "3.12.14",
+    "pillow": "12.3.0",
+    "numpy": "2.3.5",
+    "distortion_reference": "Original RGB resized directly to each variant's dimensions using LANCZOS.",
+    "psnr_null_meaning": "Positive infinity when mse is zero.",
+    "threshold_rule": "score > threshold",
+    "runtime_seconds": 0.33632220793515444
+  }
+}

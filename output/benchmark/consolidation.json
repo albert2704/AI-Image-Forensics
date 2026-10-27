@@ -1,0 +1,58 @@
+{
+  "consolidated_at_utc": "2026-10-18T05:41:07.275892+00:00",
+  "protocol_hash": "1c974e78ed2d391de1cd1897ac2513c757b2016917d621e3f38c97362ef5aafa",
+  "protocol_file_sha256": "6bc816a1103ad4bc6a4529b9c5568de9b85c44a83da77974f2866066c9805149",
+  "source_worker": "/Users/albert/Work Space/XLA/AI Image Forensics/output/benchmark-bfree-worker",
+  "canonical_study": "/Users/albert/Work Space/XLA/AI Image Forensics/output/benchmark",
+  "method": "Exact byte-copy after successful worker exit; original worker retained; existing differing files refused.",
+  "test_predictions_verified": 1728,
+  "test_sources_verified": 192,
+  "test_groups_verified": 96,
+  "failure_attempts": 0,
+  "cross_detector_transformations_verified": 1728,
+  "cross_detector_equal_fields": [
+    "pixel_sha256",
+    "artifact_sha256",
+    "width",
+    "height",
+    "operations",
+    "source_sha256",
+    "protocol_hash"
+  ],
+  "frequency_journal_unchanged_sha256": "7de8de2af2d44d18662a11da5f4f5b6b4b471dbd501f9b421c058f71465c9f93",
+  "result_files": [
+    {
+      "source": "results/bfree/model.json",
+      "destination": "results/bfree/model.json",
+      "sha256": "ba8d5d5994c9f62bdd611f11be5012cceeb35df26e9c8a75e46be7f1f5303525",
+      "bytes": 429
+    },
+    {
+      "source": "results/bfree/predictions.csv",
+      "destination": "results/bfree/predictions.csv",
+      "sha256": "3d304a8f01436f66d70fe05b226f0820daea6eaca3ca38f27f2322fcc27b0bfb",
+      "bytes": 543480
+    },
+    {
+      "source": "results/bfree/predictions.jsonl",
+      "destination": "results/bfree/predictions.jsonl",
+      "sha256": "a20fb0fac01595b5d06ca6ecffa9d33431f9bc1e90bd5fa9d2d2d2b70f41932e",
+      "bytes": 2908410
+    },
+    {
+      "source": "results/bfree/summary.json",
+      "destination": "results/bfree/summary.json",
+      "sha256": "6e527d5ba3dda636450e0e8603e1eda3c44cb7560a7576140494fa26c0b345ed",
+      "bytes": 56569
+    }
+  ],
+  "run_log": {
+    "source": "bfree-run.log",
+    "destination": "bfree-run.log",
+    "sha256": "b2ac69b2249feec8163fdfdac62a2969b9d39b5f29efb6433d5f51dccf6c5031",
+    "bytes": 1429
+  },
+  "cache_files_copied": 1728,
+  "cache_manifest": "consolidation-cache-files.json",
+  "cache_manifest_sha256": "bee32c868d19a1cc5efb120d78eaa58d2fd0e4b0036f69a7c673be3212e40bc1"
+}

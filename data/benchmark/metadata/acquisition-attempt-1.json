@@ -1,0 +1,15 @@
+{
+  "completed_at_utc": "2026-10-18T05:08:29.486634+00:00",
+  "images": 319,
+  "failures": [
+    {
+      "source_id": "raise:real:r08b12799t",
+      "error": "ReadTimeoutError: HTTPSConnectionPool(host='www.grip.unina.it', port=443): Read timed out."
+    }
+  ],
+  "received_bytes_this_run": 567535901,
+  "requested_bytes_this_run": 587280155,
+  "selection_plan_sha256": "f9248969f32b4b89646977d40d91e95155890b54a9d1a7f9cb5171f55ef4b08f",
+  "script_sha256": "99704a6f8302e4afe2b42198f1d50c1d63bd3b6f24f73c7180807a8de8118969",
+  "no_scores_computed": true
+}

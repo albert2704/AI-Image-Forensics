@@ -1,0 +1,11 @@
+{
+  "completed_at_utc": "2026-10-18T05:09:57.131151+00:00",
+  "images": 320,
+  "failures": [],
+  "received_bytes_this_run": 1780802,
+  "requested_bytes_this_run": 1780802,
+  "selection_plan_sha256": "f9248969f32b4b89646977d40d91e95155890b54a9d1a7f9cb5171f55ef4b08f",
+  "script_sha256": "c58a27c84247319ff9c21f1d5b1b887d9e51ba8f1a803a07fd0dd416211a7471",
+  "no_scores_computed": true,
+  "manifest_sha256": "fdaae67c8593aa126e69fd9da0b9e11ff5542fd89ac42ca4fe36c326ab038ca5"
+}

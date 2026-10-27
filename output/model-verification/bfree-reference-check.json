@@ -1,0 +1,68 @@
+{
+  "purpose": "upstream reference-image integration check, not independent accuracy evaluation",
+  "measured_at_utc": "2026-10-15T05:51:57.026916+00:00",
+  "torch": "2.5.1",
+  "cpu_threads": 4,
+  "results": [
+    {
+      "score": 0.002631727793266118,
+      "raw_logit": -5.937479496002197,
+      "score_kind": "ai_generation",
+      "model": "B-Free",
+      "model_revision": "c6a9f898782fb466b29af01f21960b67415afb0e",
+      "checkpoint_sha256": "5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947",
+      "device": "cpu",
+      "runtime_seconds": 14.129464084049687,
+      "calibrated_probability": false,
+      "filename": "img0000.png",
+      "reference_logit": -5.9374785,
+      "absolute_difference": 9.960021971622268e-07,
+      "source_url": "https://github.com/grip-unina/B-Free/blob/c6a9f898782fb466b29af01f21960b67415afb0e/code/demo_images/img0000.png"
+    },
+    {
+      "score": 0.011636288927594317,
+      "raw_logit": -4.441922187805176,
+      "score_kind": "ai_generation",
+      "model": "B-Free",
+      "model_revision": "c6a9f898782fb466b29af01f21960b67415afb0e",
+      "checkpoint_sha256": "5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947",
+      "device": "cpu",
+      "runtime_seconds": 3.251278125215322,
+      "calibrated_probability": false,
+      "filename": "img0001.png",
+      "reference_logit": -4.441922,
+      "absolute_difference": 1.8780517585526013e-07,
+      "source_url": "https://github.com/grip-unina/B-Free/blob/c6a9f898782fb466b29af01f21960b67415afb0e/code/demo_images/img0001.png"
+    },
+    {
+      "score": 0.9882320210699883,
+      "raw_logit": 4.430535316467285,
+      "score_kind": "ai_generation",
+      "model": "B-Free",
+      "model_revision": "c6a9f898782fb466b29af01f21960b67415afb0e",
+      "checkpoint_sha256": "5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947",
+      "device": "cpu",
+      "runtime_seconds": 3.305269000120461,
+      "calibrated_probability": false,
+      "filename": "img0002.png",
+      "reference_logit": 4.430519,
+      "absolute_difference": 1.6316467284838154e-05,
+      "source_url": "https://github.com/grip-unina/B-Free/blob/c6a9f898782fb466b29af01f21960b67415afb0e/code/demo_images/img0002.png"
+    },
+    {
+      "score": 0.9791631330532296,
+      "raw_logit": 3.8499743938446045,
+      "score_kind": "ai_generation",
+      "model": "B-Free",
+      "model_revision": "c6a9f898782fb466b29af01f21960b67415afb0e",
+      "checkpoint_sha256": "5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947",
+      "device": "cpu",
+      "runtime_seconds": 5.685993666993454,
+      "calibrated_probability": false,
+      "filename": "img0003.png",
+      "reference_logit": 3.8499813,
+      "absolute_difference": 6.9061553955585e-06,
+      "source_url": "https://github.com/grip-unina/B-Free/blob/c6a9f898782fb466b29af01f21960b67415afb0e/code/demo_images/img0003.png"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "cache_key": "395b71b0929ac7b3362adf6048aec0db3a292f7870709ac4db6ecbcd11a39016",
+  "pixel_sha256": "220aa34af97b7e8d8d26747f58a0b7908baab5dbb0b47b0fa5a8432d7148c942",
+  "model_fingerprint_sha256": "dfdcd37b985b5ffe59f36c37b3f7acf5d7b3ff111183aacb6bd8fe4e7c99fba0",
+  "prediction": {
+    "score": 0.9627470117598772,
+    "raw_logit": 3.252058506011963,
+    "score_kind": "ai_generation",
+    "model": "B-Free",
+    "model_revision": "c6a9f898782fb466b29af01f21960b67415afb0e",
+    "checkpoint_sha256": "5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947",
+    "device": "mps",
+    "runtime_seconds": 0.7518655000021681,
+    "calibrated_probability": false
+  },
+  "created_at_utc": "2026-10-18T05:29:53.783000+00:00"
+}

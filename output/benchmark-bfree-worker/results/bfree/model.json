@@ -1,0 +1,14 @@
+{
+  "model_type": "bfree",
+  "name": "B-Free",
+  "checkpoint_sha256": "5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947",
+  "preprocess_sha256": "812f98a624f591f2c13e2cfc10025e1c4f8f75ae2e59e9efea38a6cf5faf1525",
+  "model_revision": "c6a9f898782fb466b29af01f21960b67415afb0e",
+  "device": "mps",
+  "versions": {
+    "torch": "2.5.1",
+    "torchvision": "0.20.1",
+    "timm": "1.0.12",
+    "PyYAML": "6.0.3"
+  }
+}

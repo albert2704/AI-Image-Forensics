@@ -1,0 +1,86 @@
+[
+  {
+    "mode": "cumulative",
+    "run_id": "3a59505881fe472cbc470d29be0e93be",
+    "variants": [
+      {
+        "round": 0,
+        "width": 640,
+        "height": 480,
+        "mse": 0.0,
+        "psnr_db": null,
+        "bytes": 110658,
+        "score": null
+      },
+      {
+        "round": 1,
+        "width": 576,
+        "height": 432,
+        "mse": 8.968495477537722,
+        "psnr_db": 38.60360767389783,
+        "bytes": 27621,
+        "score": null
+      },
+      {
+        "round": 2,
+        "width": 518,
+        "height": 389,
+        "mse": 14.669212547104578,
+        "psnr_db": 36.466735596099106,
+        "bytes": 23960,
+        "score": null
+      },
+      {
+        "round": 3,
+        "width": 467,
+        "height": 350,
+        "mse": 20.00001835423677,
+        "psnr_db": 35.12049966646924,
+        "bytes": 20399,
+        "score": null
+      }
+    ]
+  },
+  {
+    "mode": "independent",
+    "run_id": "14d48066dc6f4f6bbb02191b1271fd97",
+    "variants": [
+      {
+        "round": 0,
+        "width": 640,
+        "height": 480,
+        "mse": 0.0,
+        "psnr_db": null,
+        "bytes": 110658,
+        "score": null
+      },
+      {
+        "round": 1,
+        "width": 576,
+        "height": 432,
+        "mse": 8.968495477537722,
+        "psnr_db": 38.60360767389783,
+        "bytes": 27621,
+        "score": null
+      },
+      {
+        "round": 2,
+        "width": 518,
+        "height": 389,
+        "mse": 8.911506254693915,
+        "psnr_db": 38.63129244618384,
+        "bytes": 23947,
+        "score": null
+      },
+      {
+        "round": 3,
+        "width": 467,
+        "height": 350,
+        "mse": 9.851834403997145,
+        "psnr_db": 38.19563257541961,
+        "bytes": 20256,
+        "score": null
+      }
+    ]
+  }
+]

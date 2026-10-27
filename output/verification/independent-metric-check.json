@@ -1,0 +1,388 @@
+{
+  "detectors": {
+    "frequency": {
+      "status": "passed",
+      "journal_rows_all_splits": 2304,
+      "journal_sha256": "7de8de2af2d44d18662a11da5f4f5b6b4b471dbd501f9b421c058f71465c9f93",
+      "summary_sha256": "2912827d002a749e40a93d473a26c781e64c010c849b81cd9595d66bbd852d00",
+      "model_sha256": "0c84d6755f859389c6236aa5fc3b6dc9e422a22c1847b8ed16e193305e382a5f",
+      "held_out_predictions": 1728,
+      "held_out_sources": 192,
+      "held_out_groups": 96,
+      "failure_attempts": 0,
+      "unique_source_condition_pairs": 2304,
+      "all_conditions_have_identical_held_out_source_ids": true,
+      "source_and_model_provenance_verified": true,
+      "score_origins": {
+        "inference": 1728
+      },
+      "conditions": {
+        "baseline": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.8040364583333333,
+          "balanced_accuracy": 0.734375,
+          "confusion": {
+            "tn": 68,
+            "fp": 28,
+            "fn": 23,
+            "tp": 73
+          },
+          "auroc_absolute_difference": 1.1102230246251565e-16,
+          "balanced_accuracy_absolute_difference": 1.1102230246251565e-16
+        },
+        "jpeg_q85_r1": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.8020833333333335,
+          "balanced_accuracy": 0.734375,
+          "confusion": {
+            "tn": 68,
+            "fp": 28,
+            "fn": 23,
+            "tp": 73
+          },
+          "auroc_absolute_difference": 1.1102230246251565e-16,
+          "balanced_accuracy_absolute_difference": 1.1102230246251565e-16
+        },
+        "jpeg_q85_r3": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.800998263888889,
+          "balanced_accuracy": 0.734375,
+          "confusion": {
+            "tn": 68,
+            "fp": 28,
+            "fn": 23,
+            "tp": 73
+          },
+          "auroc_absolute_difference": 1.1102230246251565e-16,
+          "balanced_accuracy_absolute_difference": 1.1102230246251565e-16
+        },
+        "resize_s0.9_r1": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.8028428819444445,
+          "balanced_accuracy": 0.734375,
+          "confusion": {
+            "tn": 68,
+            "fp": 28,
+            "fn": 23,
+            "tp": 73
+          },
+          "auroc_absolute_difference": 1.1102230246251565e-16,
+          "balanced_accuracy_absolute_difference": 1.1102230246251565e-16
+        },
+        "resize_s0.9_r3": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.8042534722222223,
+          "balanced_accuracy": 0.7291666666666667,
+          "confusion": {
+            "tn": 69,
+            "fp": 27,
+            "fn": 25,
+            "tp": 71
+          },
+          "auroc_absolute_difference": 1.1102230246251565e-16,
+          "balanced_accuracy_absolute_difference": 0.0
+        },
+        "combined_q95_s0.9_r1": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.8023003472222222,
+          "balanced_accuracy": 0.7291666666666667,
+          "confusion": {
+            "tn": 68,
+            "fp": 28,
+            "fn": 24,
+            "tp": 72
+          },
+          "auroc_absolute_difference": 0.0,
+          "balanced_accuracy_absolute_difference": 1.1102230246251565e-16
+        },
+        "combined_q95_s0.9_r3": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.8030598958333334,
+          "balanced_accuracy": 0.7291666666666667,
+          "confusion": {
+            "tn": 69,
+            "fp": 27,
+            "fn": 25,
+            "tp": 71
+          },
+          "auroc_absolute_difference": 0.0,
+          "balanced_accuracy_absolute_difference": 0.0
+        },
+        "reverse_q95_s0.9_r3": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.802734375,
+          "balanced_accuracy": 0.7291666666666667,
+          "confusion": {
+            "tn": 69,
+            "fp": 27,
+            "fn": 25,
+            "tp": 71
+          },
+          "auroc_absolute_difference": 0.0,
+          "balanced_accuracy_absolute_difference": 0.0
+        },
+        "independent_q95_s0.9_r3": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.8021918402777778,
+          "balanced_accuracy": 0.7239583333333334,
+          "confusion": {
+            "tn": 68,
+            "fp": 28,
+            "fn": 25,
+            "tp": 71
+          },
+          "auroc_absolute_difference": 0.0,
+          "balanced_accuracy_absolute_difference": 0.0
+        }
+      },
+      "primary_jpeg_q85_r3": {
+        "balanced_accuracy_delta": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "bootstrap_draws": 5000,
+        "seed": 20261018,
+        "paired_groups": 96,
+        "paired_sources": 192,
+        "all_draws_preserve_real_generated_pairs": true,
+        "implementation": "Reconstruct paired predictions for each group sample; sklearn balanced_accuracy_score(after) minus sklearn balanced_accuracy_score(before); NumPy percentile interval."
+      }
+    },
+    "bfree": {
+      "status": "passed",
+      "journal_rows_all_splits": 1728,
+      "journal_sha256": "a20fb0fac01595b5d06ca6ecffa9d33431f9bc1e90bd5fa9d2d2d2b70f41932e",
+      "summary_sha256": "6e527d5ba3dda636450e0e8603e1eda3c44cb7560a7576140494fa26c0b345ed",
+      "model_sha256": "ba8d5d5994c9f62bdd611f11be5012cceeb35df26e9c8a75e46be7f1f5303525",
+      "held_out_predictions": 1728,
+      "held_out_sources": 192,
+      "held_out_groups": 96,
+      "failure_attempts": 0,
+      "unique_source_condition_pairs": 1728,
+      "all_conditions_have_identical_held_out_source_ids": true,
+      "source_and_model_provenance_verified": true,
+      "score_origins": {
+        "inference": 1728
+      },
+      "conditions": {
+        "baseline": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 1.0,
+          "balanced_accuracy": 1.0,
+          "confusion": {
+            "tn": 96,
+            "fp": 0,
+            "fn": 0,
+            "tp": 96
+          },
+          "auroc_absolute_difference": 0.0,
+          "balanced_accuracy_absolute_difference": 0.0
+        },
+        "jpeg_q85_r1": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 1.0,
+          "balanced_accuracy": 1.0,
+          "confusion": {
+            "tn": 96,
+            "fp": 0,
+            "fn": 0,
+            "tp": 96
+          },
+          "auroc_absolute_difference": 0.0,
+          "balanced_accuracy_absolute_difference": 0.0
+        },
+        "jpeg_q85_r3": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 1.0,
+          "balanced_accuracy": 1.0,
+          "confusion": {
+            "tn": 96,
+            "fp": 0,
+            "fn": 0,
+            "tp": 96
+          },
+          "auroc_absolute_difference": 0.0,
+          "balanced_accuracy_absolute_difference": 0.0
+        },
+        "resize_s0.9_r1": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.999782986111111,
+          "balanced_accuracy": 0.9947916666666667,
+          "confusion": {
+            "tn": 96,
+            "fp": 0,
+            "fn": 1,
+            "tp": 95
+          },
+          "auroc_absolute_difference": 1.1102230246251565e-16,
+          "balanced_accuracy_absolute_difference": 0.0
+        },
+        "resize_s0.9_r3": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.9962022569444444,
+          "balanced_accuracy": 0.9583333333333333,
+          "confusion": {
+            "tn": 96,
+            "fp": 0,
+            "fn": 8,
+            "tp": 88
+          },
+          "auroc_absolute_difference": 0.0,
+          "balanced_accuracy_absolute_difference": 0.0
+        },
+        "combined_q95_s0.9_r1": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.999782986111111,
+          "balanced_accuracy": 0.9947916666666667,
+          "confusion": {
+            "tn": 96,
+            "fp": 0,
+            "fn": 1,
+            "tp": 95
+          },
+          "auroc_absolute_difference": 1.1102230246251565e-16,
+          "balanced_accuracy_absolute_difference": 0.0
+        },
+        "combined_q95_s0.9_r3": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.9965277777777777,
+          "balanced_accuracy": 0.9583333333333333,
+          "confusion": {
+            "tn": 96,
+            "fp": 0,
+            "fn": 8,
+            "tp": 88
+          },
+          "auroc_absolute_difference": 1.1102230246251565e-16,
+          "balanced_accuracy_absolute_difference": 0.0
+        },
+        "reverse_q95_s0.9_r3": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.9966362847222223,
+          "balanced_accuracy": 0.9479166666666667,
+          "confusion": {
+            "tn": 96,
+            "fp": 0,
+            "fn": 10,
+            "tp": 86
+          },
+          "auroc_absolute_difference": 1.1102230246251565e-16,
+          "balanced_accuracy_absolute_difference": 0.0
+        },
+        "independent_q95_s0.9_r3": {
+          "sources": 192,
+          "labels": {
+            "0": 96,
+            "1": 96
+          },
+          "auroc": 0.9967447916666667,
+          "balanced_accuracy": 0.96875,
+          "confusion": {
+            "tn": 96,
+            "fp": 0,
+            "fn": 6,
+            "tp": 90
+          },
+          "auroc_absolute_difference": 1.1102230246251565e-16,
+          "balanced_accuracy_absolute_difference": 0.0
+        }
+      },
+      "primary_jpeg_q85_r3": {
+        "balanced_accuracy_delta": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "bootstrap_draws": 5000,
+        "seed": 20261018,
+        "paired_groups": 96,
+        "paired_sources": 192,
+        "all_draws_preserve_real_generated_pairs": true,
+        "implementation": "Reconstruct paired predictions for each group sample; sklearn balanced_accuracy_score(after) minus sklearn balanced_accuracy_score(before); NumPy percentile interval."
+      }
+    }
+  },
+  "protocol_hash": "1c974e78ed2d391de1cd1897ac2513c757b2016917d621e3f38c97362ef5aafa",
+  "protocol_file_sha256": "6bc816a1103ad4bc6a4529b9c5568de9b85c44a83da77974f2866066c9805149",
+  "audit_script_sha256": "f2e41f50801b180d4a45c5a5d593659ae80b901034f862ce43d1395284dabbf9",
+  "audited_at_utc": "2026-10-18T05:41:17.411673+00:00",
+  "versions": {
+    "python": "3.12.14",
+    "numpy": "1.26.4",
+    "sklearn": "1.9.1"
+  },
+  "absolute_tolerance": 1e-12,
+  "threshold_rule": "score > 0.5",
+  "independence": "No project metric or detector function is imported; no inference is run.",
+  "scope": "Arithmetic, source identities, pairing, recorded provenance and frozen bootstrap recipe; not independent ground-truth verification or a guarantee of statistical group independence.",
+  "status": "passed"
+}

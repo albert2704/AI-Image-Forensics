@@ -1,0 +1,26 @@
+[
+  {
+    "path": "/api/status",
+    "status": 200,
+    "bytes": 446
+  },
+  {
+    "path": "/api/investigations/441d4791c61843e099f51f5e1d11e922",
+    "status": 200,
+    "bytes": 10554
+  },
+  {
+    "path": "/runs/441d4791c61843e099f51f5e1d11e922/investigation.json",
+    "status": 200,
+    "bytes": 13564
+  },
+  {
+    "path": "/runs/441d4791c61843e099f51f5e1d11e922/investigation.csv",
+    "status": 200,
+    "bytes": 714
+  },
+  {
+    "case": "invalid_host",
+    "status": 403
+  }
+]

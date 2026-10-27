@@ -1,0 +1,11 @@
+{
+  "new_model_calls": 2304,
+  "cache_hits": 0,
+  "new_predictions": 2304,
+  "new_failures": 0,
+  "budget_exhausted": false,
+  "protocol_hash": "1c974e78ed2d391de1cd1897ac2513c757b2016917d621e3f38c97362ef5aafa",
+  "detector_id": "frequency",
+  "summary_path": "/Users/albert/Work Space/XLA/AI Image Forensics/output/benchmark/results/frequency/summary.json",
+  "complete_requested_splits": true
+}

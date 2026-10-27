@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-10-18T05:11:25.646786+00:00",
+  "study_protocol_path": "/Users/albert/Work Space/XLA/AI Image Forensics/output/benchmark/protocol.json",
+  "study_protocol_hash": "1c974e78ed2d391de1cd1897ac2513c757b2016917d621e3f38c97362ef5aafa",
+  "source_ids": [
+    "raise:real:r046852c1t",
+    "synthbuster:dalle3:r046852c1t",
+    "raise:real:r1d47bfc2t",
+    "synthbuster:dalle3:r1d47bfc2t",
+    "raise:real:r017904f0t",
+    "synthbuster:dalle3:r017904f0t",
+    "raise:real:r09c8e042t",
+    "synthbuster:firefly:r09c8e042t",
+    "raise:real:r079d086et",
+    "synthbuster:firefly:r079d086et",
+    "raise:real:r0a94587ft",
+    "synthbuster:firefly:r0a94587ft",
+    "raise:real:r1743fb6bt",
+    "synthbuster:midjourney-v5:r1743fb6bt",
+    "raise:real:r0f36ba1bt",
+    "synthbuster:midjourney-v5:r0f36ba1bt",
+    "raise:real:r0a0852c6t",
+    "synthbuster:midjourney-v5:r0a0852c6t",
+    "raise:real:r1ef8b85ft",
+    "synthbuster:stable-diffusion-xl:r1ef8b85ft",
+    "raise:real:r1dbe1b11t",
+    "synthbuster:stable-diffusion-xl:r1dbe1b11t",
+    "raise:real:r15dcfacct",
+    "synthbuster:stable-diffusion-xl:r15dcfacct"
+  ],
+  "selection": "Three SHA256-ranked matched test groups per generator, before replay or policy scoring.",
+  "budget": 4,
+  "allow_regional": false,
+  "catalog": [
+    "baseline",
+    "jpeg_q85_r1",
+    "jpeg_q85_r3",
+    "resize_s0.9_r1",
+    "combined_q95_s0.9_r3"
+  ],
+  "fixed_sequence": [
+    "jpeg_q85_r1",
+    "resize_s0.9_r1",
+    "combined_q95_s0.9_r3"
+  ],
+  "threshold": 0.5,
+  "threshold_rule": "score > threshold",
+  "policies": [
+    "fixed",
+    "rule",
+    "local_llm"
+  ],
+  "planner_model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "planner_revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+  "planner_files_sha256": {
+    "model.safetensors": "dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee",
+    "config.json": "98d2ff8cc47488d08a2b0b3acf4eb99ef210779b42bd48605f6b8e36acdbf670",
+    "tokenizer.json": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+    "tokenizer_config.json": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583"
+  },
+  "code_sha256": {
+    "agent.py": "7d363b2b6389c22e64ffe0e8ea47cfea0d8b7f062bfad82fb2bf0831ae824e8e",
+    "planner.py": "7a30e0ffe778cdf10a7e7c28c548ce0b45bb9bb9153bcec4158d6b1a6905a3bc",
+    "agent_evaluation.py": "0664084990cd97906d35513858c1a9e1b83b2a2c9e23ffa3c58041b656ef5837"
+  },
+  "primary_policy_measure": "Fraction of sources with a reference-catalog threshold change that the policy discovers within four model-tool calls.",
+  "reference": "All four available perturbations vs the original; not ground-truth image authenticity.",
+  "secondary_measures": [
+    "mean detector-tool calls",
+    "budget compliance",
+    "valid action selection",
+    "evidence reference validity",
+    "planner wall time"
+  ],
+  "design_limits": [
+    "24-source descriptive pilot; no inferential superiority claim.",
+    "TruFor is disabled for matched replay because no regional benchmark results exist.",
+    "Detector scores and per-call inference times are replayed; only planner time is newly measured.",
+    "Action order is fixed; potential language-model positional bias is not assessed.",
+    "Evidence reference validity is a structural check, not human-rated explanatory quality."
+  ],
+  "protocol_hash": "b34b11babb166808d5ddfdb45b14917ce6b11792c208fb73a8d91e1aa519d6c3"
+}

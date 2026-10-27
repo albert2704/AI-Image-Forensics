@@ -1,0 +1,36 @@
+{
+  "status": "complete",
+  "message": "TruFor returned a validated manipulation anomaly map and localization reliability map.",
+  "warnings": [
+    "TruFor localizes manipulation anomalies; it does not identify AI-generated pixels.",
+    "The displayed score is not an independently calibrated probability."
+  ],
+  "model": "TruFor",
+  "score": 0.9976142644882202,
+  "score_kind": "local_manipulation",
+  "calibrated_probability": false,
+  "model_revision": "ae54475df6f41a491d7615100feb19263dec13f7",
+  "checkpoint_sha256": "ac1d90e329a72e0d66e8665e123a19e94bfae3209c3ef8a4f9ca3b91578c7844",
+  "device": "cpu",
+  "heatmap_path": "/Users/albert/Work Space/XLA/AI Image Forensics/output/model-verification/trufor/trufor-a93207a4d9cb4f6baa11d0d6b4f28d0d/localization-heatmap.png",
+  "reliability_path": "/Users/albert/Work Space/XLA/AI Image Forensics/output/model-verification/trufor/trufor-a93207a4d9cb4f6baa11d0d6b4f28d0d/localization-reliability.png",
+  "overlay_path": "/Users/albert/Work Space/XLA/AI Image Forensics/output/model-verification/trufor/trufor-a93207a4d9cb4f6baa11d0d6b4f28d0d/localization-overlay.png",
+  "npz_path": "/Users/albert/Work Space/XLA/AI Image Forensics/output/model-verification/trufor/trufor-a93207a4d9cb4f6baa11d0d6b4f28d0d/result.npz",
+  "imgsize": [
+    1536,
+    2048
+  ],
+  "runtime_seconds": 181.3801652090624,
+  "heatmap_kind": "local_manipulation_anomaly",
+  "heatmap_range": [
+    0,
+    1
+  ],
+  "heatmap_legend": "Fixed scale: blue 0 \u2192 cyan \u2192 yellow \u2192 red 1; higher values indicate stronger manipulation anomalies.",
+  "reliability_legend": "Black 0 \u2192 white 1; lighter pixels indicate greater estimated localization reliability.",
+  "reliability_mean": 0.9772759079933167,
+  "source_url": "https://github.com/grip-unina/TruFor/blob/ae54475df6f41a491d7615100feb19263dec13f7/test_docker/images/tampered1.png",
+  "input_name": "tampered1.png",
+  "input_sha256": "7a03e3bf871ba63d10a5d625f563ece4ed51f7dae7b578cb5c1caacf6c6466fe",
+  "verification_scope": "Real inference on an upstream example; no independent accuracy or localization ground-truth evaluation."
+}

@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+output/runs/
+external/
+weights/
+data/benchmark/images/
+output/benchmark/cache/
+output/cache/
+tmp/
+output/matplotlib-cache/
+*.npz
+.DS_Store

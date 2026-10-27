@@ -1,0 +1,69 @@
+{
+  "purpose": "illustrative trajectory on an official demo image; not a benchmark",
+  "run_id": "89c31f6991c74f058d51a1b126b84cc4",
+  "source_url": "https://github.com/grip-unina/B-Free/blob/c6a9f898782fb466b29af01f21960b67415afb0e/code/demo_images/img0002.png",
+  "config": {
+    "quality": 95,
+    "scale": 0.9,
+    "rounds": 3,
+    "mode": "cumulative",
+    "order": "resize-jpeg",
+    "operation": "combined",
+    "threshold": 0.5
+  },
+  "variants": [
+    {
+      "round": 0,
+      "width": 1024,
+      "height": 1024,
+      "score": 0.9882320210699883,
+      "raw_logit": 4.430535316467285,
+      "mse": 0.0,
+      "psnr_db": null,
+      "error": null
+    },
+    {
+      "round": 1,
+      "width": 922,
+      "height": 922,
+      "score": 0.0986197809335171,
+      "raw_logit": -2.2126553058624268,
+      "mse": 7.593150010273495,
+      "psnr_db": 39.32658380983347,
+      "error": null
+    },
+    {
+      "round": 2,
+      "width": 829,
+      "height": 829,
+      "score": 0.020875690874798934,
+      "raw_logit": -3.8480732440948486,
+      "mse": 15.74142986230449,
+      "psnr_db": 36.16036182202892,
+      "error": null
+    },
+    {
+      "round": 3,
+      "width": 746,
+      "height": 746,
+      "score": 0.00274183875328013,
+      "raw_logit": -5.89638090133667,
+      "mse": 22.793454875211733,
+      "psnr_db": 34.55270203325898,
+      "error": null
+    }
+  ],
+  "summary": {
+    "score_min": 0.00274183875328013,
+    "score_max": 0.9882320210699883,
+    "flip_count": 3,
+    "warnings": [
+      "A detector score is model evidence, not a calibrated probability of authenticity.",
+      "Derivatives of one image are correlated; persistence is not independent corroboration.",
+      "JPEG quality is an encoder setting, not a measurement of prior compression."
+    ],
+    "regional_scan_recommended": true,
+    "title": "Detector evidence changes under processing",
+    "text": "3 of 3 derivatives cross the configured 0.5 threshold relative to the original. Treat this image as inconclusive and inspect its provenance."
+  }
+}

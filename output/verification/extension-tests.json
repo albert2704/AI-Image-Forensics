@@ -1,0 +1,8 @@
+{
+  "checked_at_utc": "2026-10-18T05:17:14.496326+00:00",
+  "command": ".venv/bin/python -m unittest discover -s tests -q",
+  "exit_code": 0,
+  "tests_run": 77,
+  "output": "----------------------------------------------------------------------\nRan 77 tests in 2.684s\n\nOK\n",
+  "note": "Software fixtures are not experimental detector evidence."
+}

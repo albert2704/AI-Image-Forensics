@@ -1,0 +1,50 @@
+[
+  {
+    "file": "img0000.png",
+    "score": 0.0026317703481123543,
+    "raw_logit": -5.937463283538818,
+    "score_kind": "ai_generation",
+    "model": "B-Free",
+    "model_revision": "c6a9f898782fb466b29af01f21960b67415afb0e",
+    "checkpoint_sha256": "5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947",
+    "device": "mps",
+    "runtime_seconds": 6.444008999998914,
+    "calibrated_probability": false
+  },
+  {
+    "file": "img0001.png",
+    "score": 0.011636360220455694,
+    "raw_logit": -4.441915988922119,
+    "score_kind": "ai_generation",
+    "model": "B-Free",
+    "model_revision": "c6a9f898782fb466b29af01f21960b67415afb0e",
+    "checkpoint_sha256": "5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947",
+    "device": "mps",
+    "runtime_seconds": 0.7119680829928257,
+    "calibrated_probability": false
+  },
+  {
+    "file": "img0002.png",
+    "score": 0.9882322595187126,
+    "raw_logit": 4.430555820465088,
+    "score_kind": "ai_generation",
+    "model": "B-Free",
+    "model_revision": "c6a9f898782fb466b29af01f21960b67415afb0e",
+    "checkpoint_sha256": "5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947",
+    "device": "mps",
+    "runtime_seconds": 0.7126987499941606,
+    "calibrated_probability": false
+  },
+  {
+    "file": "img0003.png",
+    "score": 0.9791638432409836,
+    "raw_logit": 3.8500092029571533,
+    "score_kind": "ai_generation",
+    "model": "B-Free",
+    "model_revision": "c6a9f898782fb466b29af01f21960b67415afb0e",
+    "checkpoint_sha256": "5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947",
+    "device": "mps",
+    "runtime_seconds": 0.691352249996271,
+    "calibrated_probability": false
+  }
+]

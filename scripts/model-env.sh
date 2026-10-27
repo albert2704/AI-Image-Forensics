@@ -1,0 +1,11 @@
+# Source this file from the project directory, or set FORENSICS_PROJECT_DIR first.
+FORENSICS_PROJECT_DIR="${FORENSICS_PROJECT_DIR:-$PWD}"
+export BFREE_REPO="${BFREE_REPO:-$FORENSICS_PROJECT_DIR/external/B-Free}"
+export BFREE_WEIGHTS="${BFREE_WEIGHTS:-$BFREE_REPO/code/weights/BFREE_dino2reg4}"
+export BFREE_DEVICE="${BFREE_DEVICE:-cpu}"
+export TRUFOR_REPO="${TRUFOR_REPO:-$FORENSICS_PROJECT_DIR/external/TruFor}"
+export TRUFOR_PYTHON="${TRUFOR_PYTHON:-$FORENSICS_PROJECT_DIR/.venv/bin/python}"
+export TRUFOR_DEVICE="${TRUFOR_DEVICE:-cpu}"
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-4}"
+export MPLCONFIGDIR="${MPLCONFIGDIR:-$FORENSICS_PROJECT_DIR/output/cache/matplotlib}"
+export HF_HOME="${HF_HOME:-$FORENSICS_PROJECT_DIR/output/cache/huggingface}"

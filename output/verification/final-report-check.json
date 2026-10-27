@@ -1,0 +1,23 @@
+{
+  "checked_at_utc": "2026-10-18T05:45:46.325517+00:00",
+  "path": "/Users/albert/Work Space/XLA/AI Image Forensics/output/pdf/AI_Image_Forensics_Research_Report.pdf",
+  "sha256": "fdb7a40cd507fbf17d2a959e5ecd155effb3c6d373bc38b851e0053b36534cd5",
+  "page_count": 9,
+  "render_scale": 1.5,
+  "render_directory": "/Users/albert/Work Space/XLA/AI Image Forensics/tmp/pdfs/final-report",
+  "visually_inspected_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "review": "All nine pages inspected; no clipping, overlaps or accidental blank pages. Small chart labels remain readable when enlarged; standalone PNG/PDF figures are included.",
+  "measured_results_only": true,
+  "independent_metric_audit": "output/verification/independent-metric-check.json",
+  "independent_policy_audit": "output/verification/independent-policy-check.json"
+}

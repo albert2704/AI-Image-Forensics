@@ -1,0 +1,69 @@
+{
+  "protocol_hash": "b34b11babb166808d5ddfdb45b14917ce6b11792c208fb73a8d91e1aa519d6c3",
+  "replay_input_sha256": "de473ccc0c8321915487422a9db8a43dcb2ad27e1fe1e6f0436b2b8be83eac5a",
+  "selected_sources": 24,
+  "design_limits": [
+    "24-source descriptive pilot; no inferential superiority claim.",
+    "TruFor is disabled for matched replay because no regional benchmark results exist.",
+    "Detector scores and per-call inference times are replayed; only planner time is newly measured.",
+    "Action order is fixed; potential language-model positional bias is not assessed.",
+    "Evidence reference validity is a structural check, not human-rated explanatory quality."
+  ],
+  "policies": {
+    "fixed": {
+      "episodes": 24,
+      "complete": true,
+      "reference_unstable_sources": 1,
+      "discovered_unstable_sources": 1,
+      "instability_discovery_recall": 1.0,
+      "mean_detector_tool_calls": 4.0,
+      "mean_planner_seconds": 0.0,
+      "valid_action_episodes": 24,
+      "failed_episodes": 0,
+      "budget_compliant_episodes": 24,
+      "valid_evidence_reference_episodes": 24,
+      "selected_action_counts": {
+        "jpeg_q85_r1": 24,
+        "resize_s0.9_r1": 24,
+        "combined_q95_s0.9_r3": 24
+      }
+    },
+    "rule": {
+      "episodes": 24,
+      "complete": true,
+      "reference_unstable_sources": 1,
+      "discovered_unstable_sources": 1,
+      "instability_discovery_recall": 1.0,
+      "mean_detector_tool_calls": 2.5416666666666665,
+      "mean_planner_seconds": 0.0,
+      "valid_action_episodes": 24,
+      "failed_episodes": 0,
+      "budget_compliant_episodes": 24,
+      "valid_evidence_reference_episodes": 24,
+      "selected_action_counts": {
+        "jpeg_q85_r1": 24,
+        "finish": 23,
+        "combined_q95_s0.9_r3": 12,
+        "resize_s0.9_r1": 1
+      }
+    },
+    "local_llm": {
+      "episodes": 24,
+      "complete": true,
+      "reference_unstable_sources": 1,
+      "discovered_unstable_sources": 1,
+      "instability_discovery_recall": 1.0,
+      "mean_detector_tool_calls": 4.0,
+      "mean_planner_seconds": 2.5737632584932726,
+      "valid_action_episodes": 24,
+      "failed_episodes": 0,
+      "budget_compliant_episodes": 24,
+      "valid_evidence_reference_episodes": 24,
+      "selected_action_counts": {
+        "jpeg_q85_r3": 24,
+        "resize_s0.9_r1": 24,
+        "combined_q95_s0.9_r3": 24
+      }
+    }
+  }
+}
