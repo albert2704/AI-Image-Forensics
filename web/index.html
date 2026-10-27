@@ -10,127 +10,186 @@
   <script src="/app.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#workspace">Đến khu vực phân tích</a>
+  <a class="skip-link" href="#viewer">Đến khung so sánh ảnh</a>
   <header class="topbar">
     <a href="#" class="brand" aria-label="Trang chủ Giám định ảnh">
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M3 12V3h9M20 3h9v9M29 20v9h-9M12 29H3v-9"/><circle cx="16" cy="16" r="6"/><path d="M16 6v4M16 22v4M6 16h4M22 16h4"/></svg></span>
-      <span>GIÁM ĐỊNH ẢNH<span class="brand-caption">Không gian nghiên cứu</span></span>
+      <span class="brand-text">GIÁM ĐỊNH ẢNH<span class="brand-caption">Thí nghiệm 013 · Nén lặp lại &amp; đổi kích thước</span></span>
     </a>
-    <nav aria-label="Điều hướng chính"><a href="#workspace" class="active">Phân tích ảnh</a><a href="#method">Phương pháp &amp; giới hạn</a><a href="https://github.com/grip-unina/B-Free" target="_blank" rel="noopener noreferrer">Mã nguồn mô hình <span aria-hidden="true">↗</span></a></nav>
-    <div class="local-badge"><span class="status-dot" aria-hidden="true"></span>CHẠY TRÊN MÁY<span class="version">v0.1</span></div>
+    <ol class="stepper" aria-label="Tiến trình phân tích">
+      <li class="current" id="step-source"><span>1</span>Chọn ảnh</li>
+      <li id="step-transform"><span>2</span>Biến đổi</li>
+      <li id="step-measure"><span>3</span>Đọc kết quả</li>
+      <li id="step-region"><span>4</span>Từng vùng</li>
+    </ol>
+    <div class="topbar-actions">
+      <span class="model-chip" title="Mô hình phát hiện ảnh AI"><b>B-Free</b><span class="availability" id="bfree-badge">ĐANG KIỂM TRA</span></span>
+      <button type="button" class="guide-button" id="guide-open" aria-haspopup="dialog"><span aria-hidden="true">ⓘ</span> Cách đọc kết quả</button>
+    </div>
   </header>
 
-  <main>
-    <section class="intro" aria-labelledby="page-title">
-      <div><div class="eyebrow"><span class="tiny-cross" aria-hidden="true">+</span> TRỢ LÝ GIÁM ĐỊNH ẢNH AI</div><h1 id="page-title">Tín hiệu có còn <em>ổn định?</em></h1><p>Phân tích ảnh, thử nén và đổi kích thước, rồi đối chiếu kết quả.</p></div>
-      <div class="study-label"><span class="study-number">THÍ NGHIỆM 013</span><span>Nén lặp lại<br>&amp; đổi kích thước</span></div>
+  <div id="alert" class="alert" role="alert" hidden></div>
+
+  <main class="workbench" id="workspace">
+    <!-- Left pane: source and experiment settings -->
+    <aside class="pane pane-controls" aria-label="Ảnh nguồn và thiết lập thí nghiệm">
+      <form id="experiment-form">
+        <section class="control-section source-section">
+          <div class="section-heading"><h2><span class="section-number">01</span> Ảnh nguồn</h2><span class="micro-label" id="file-state">CHƯA CHỌN ẢNH</span></div>
+          <label class="dropzone" id="dropzone" for="image-file">
+            <input type="file" id="image-file" accept="image/jpeg,image/png,image/webp" aria-describedby="upload-hint">
+            <svg class="upload-icon" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="4.5" y="8.5" width="31" height="26" rx="3"/><path d="m8 29 8-8 6 6 4-4 6 6M20 2v13m-5-8 5-5 5 5"/><circle cx="28" cy="16" r="2"/></svg>
+            <span class="dropzone-text"><strong id="upload-title">Thả ảnh vào đây</strong><span id="upload-subtitle">hoặc <u>chọn tệp ảnh</u></span></span>
+            <small id="upload-hint">JPEG, PNG hoặc WebP · tối đa 20 MiB · xử lý trên máy</small>
+          </label>
+          <div class="file-detail" id="file-detail" hidden><span class="file-icon" aria-hidden="true">▧</span><div><strong id="file-name"></strong><span id="file-meta"></span></div><button type="button" id="clear-file" class="icon-button" aria-label="Bỏ ảnh đã chọn">×</button></div>
+          <button type="button" id="example-button" class="example-button">Mở ví dụ đã kiểm chứng <span aria-hidden="true">↗</span></button>
+        </section>
+
+        <section class="control-section workflow-section">
+          <div class="section-heading"><h2><span class="section-number">02</span> Cách phân tích</h2></div>
+          <fieldset class="mode-tabs"><legend class="sr-only">Chọn cách phân tích</legend>
+            <label><input type="radio" name="workflow_mode" value="fixed" checked><span>Theo cấu hình</span></label>
+            <label><input type="radio" name="workflow_mode" value="adaptive"><span>Thích ứng</span></label>
+          </fieldset>
+          <p class="field-help mode-tab-help" data-mode="fixed">Bạn chọn phép biến đổi và số vòng xử lý.</p>
+          <p class="field-help mode-tab-help" data-mode="adaptive">AI trên máy chọn phép thử dựa trên kết quả đo.</p>
+        </section>
+
+        <section class="control-section agent-section" id="agent-settings" hidden>
+          <div class="section-heading"><h2><span class="section-number">03</span> Giới hạn phân tích</h2></div>
+          <div class="planner-status"><strong>Qwen chọn phép thử</strong><span class="availability" id="planner-badge">ĐANG KIỂM TRA</span></div><p id="planner-status" class="field-help">Đang kiểm tra mô hình chọn phép thử…</p>
+          <label class="field-label budget-label" for="agent-budget">Số lượt gọi mô hình tối đa</label><select id="agent-budget" aria-describedby="budget-help"><option value="2">2 lượt · kiểm tra nhanh</option><option value="3">3 lượt</option><option value="4" selected>4 lượt · tiêu chuẩn</option><option value="5">5 lượt</option><option value="6">6 lượt · mở rộng</option></select><p class="field-help" id="budget-help">Bao gồm lượt đo ảnh gốc bằng B-Free. Mỗi phép thử là một nhánh riêng, bắt đầu từ cùng ảnh gốc.</p>
+          <label class="checkbox-field"><input id="allow-regional" type="checkbox" checked><span>Cho phép TruFor kiểm tra từng vùng<small>Có thể mất thêm vài phút.</small></span></label>
+        </section>
+
+        <section class="control-section protocol-section" id="fixed-settings">
+          <div class="section-heading"><h2><span class="section-number">03</span> Thiết lập thí nghiệm</h2></div>
+          <label class="field-label" for="operation">Phép biến đổi</label>
+          <select id="operation" name="operation"><option value="combined">Nén + đổi kích thước</option><option value="jpeg">Chỉ nén JPEG</option><option value="resize">Chỉ đổi kích thước</option></select>
+          <div class="slider-field" id="quality-field"><div class="field-row"><label for="quality">Chất lượng JPEG</label><output for="quality" id="quality-value">90</output></div><input type="range" id="quality" min="50" max="100" value="90" step="1"><div class="range-labels"><span>50 · nén mạnh</span><span>100 · nén nhẹ</span></div></div>
+          <div class="slider-field" id="scale-field"><div class="field-row"><label for="scale">Tỉ lệ kích thước mỗi vòng</label><output for="scale" id="scale-value">90%</output></div><input type="range" id="scale" min="50" max="100" value="90" step="5"><div class="range-labels"><span>50% · thu nhỏ</span><span>100% · giữ nguyên</span></div></div>
+          <div class="two-fields"><div><label class="field-label" for="rounds">Số vòng</label><select id="rounds"><option value="1">1 vòng</option><option value="2">2 vòng</option><option value="3" selected>3 vòng</option><option value="4">4 vòng</option><option value="5">5 vòng</option></select></div><div id="order-field"><label class="field-label" for="order">Thứ tự</label><select id="order"><option value="resize-jpeg">Đổi cỡ → JPEG</option><option value="jpeg-resize">JPEG → đổi cỡ</option></select></div></div>
+          <fieldset class="mode-field"><legend>Chế độ xử lý</legend><div class="segmented"><label><input type="radio" name="mode" value="cumulative" checked><span>Nối tiếp</span></label><label><input type="radio" name="mode" value="independent"><span>Đối chứng một lượt</span></label></div></fieldset>
+          <p class="field-help" id="mode-help">Mỗi vòng xử lý ảnh từ kết quả vòng trước, giữ lại tác động tích lũy.</p>
+          <details class="advanced"><summary>Ngưỡng phân loại <span id="threshold-summary">0,50</span></summary><div class="slider-field"><div class="field-row"><label for="threshold">Ngưỡng khảo sát</label><output for="threshold" id="threshold-value">0,50</output></div><input type="range" id="threshold" min="0" max="100" step="5" value="50"><p class="field-help">Dùng để đếm số biến thể đổi phân loại so với ảnh gốc. Ngưỡng này chưa được kiểm chứng cho ảnh của bạn.</p></div></details>
+          <div class="protocol-preview"><span class="micro-label">CHUỖI XỬ LÝ</span><p id="sequence">Gốc → V1 → V2 → V3</p><small id="sequence-detail">3 vòng · Q90 · 90% mỗi vòng</small></div>
+        </section>
+
+        <div class="run-controls">
+          <p class="model-note" id="bfree-status">Đang kiểm tra mô hình…</p>
+          <button class="primary-button" type="submit" id="run-button" disabled><span id="run-label">Chạy thí nghiệm</span><svg id="run-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg><span class="spinner" id="run-spinner" hidden></span></button>
+          <p class="run-help" id="run-help">Chọn ảnh để bắt đầu phân tích.</p>
+        </div>
+      </form>
+    </aside>
+
+    <!-- Centre pane: image viewer and score trajectory -->
+    <section class="pane pane-viewer" id="viewer" aria-labelledby="preview-title">
+      <div class="viewer-toolbar">
+        <div class="viewer-title"><h2 id="preview-title">Theo dõi ảnh sau biến đổi.</h2><span class="small-tag" id="preview-tag">ĐANG CHỜ ẢNH</span></div>
+        <div class="viewer-tools">
+          <div class="view-switch" role="radiogroup" aria-label="Cách xem">
+            <button type="button" role="radio" aria-checked="true" data-view="side">Song song</button>
+            <button type="button" role="radio" aria-checked="false" data-view="slider">Trượt</button>
+            <button type="button" role="radio" aria-checked="false" data-view="diff">Khác biệt</button>
+          </div>
+          <div class="zoom-tools" aria-label="Thu phóng">
+            <button type="button" class="tool-button" id="zoom-out" aria-label="Thu nhỏ">−</button>
+            <button type="button" class="tool-button zoom-level" id="zoom-reset" aria-label="Vừa khung">Vừa khung</button>
+            <button type="button" class="tool-button" id="zoom-in" aria-label="Phóng to">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="viewer-stage" id="viewer-stage" data-view="side">
+        <figure class="image-figure" id="original-figure">
+          <figcaption><span><i class="legend-dot source-dot" aria-hidden="true"></i> Ảnh gốc</span><span class="image-dimensions" id="original-dimensions">— × —</span></figcaption>
+          <div class="image-stage" id="original-stage"><div class="empty-preview" id="original-empty"><svg viewBox="0 0 56 56" aria-hidden="true"><path d="M8 20V8h12M36 8h12v12M48 36v12H36M20 48H8V36"/><path d="M20 28h16M28 20v16"/></svg><span>Ảnh nguồn của bạn</span><small>Điểm bắt đầu của mọi phép đo</small></div><div class="zoom-layer"><img id="original-image" alt="Ảnh gốc đã tải lên" hidden></div></div>
+          <div class="image-footer"><span id="original-format">ẢNH NGUỒN</span><span id="original-size">Tệp đầu vào chưa thay đổi</span></div>
+        </figure>
+        <figure class="image-figure" id="result-figure">
+          <figcaption><span><i class="legend-dot result-dot" aria-hidden="true"></i> <span id="result-label">Kết quả</span></span><span class="image-dimensions" id="result-dimensions">CHƯA ĐO</span></figcaption>
+          <div class="image-stage" id="result-stage"><div class="empty-preview" id="result-empty"><svg viewBox="0 0 56 56" aria-hidden="true"><rect x="11" y="11" width="34" height="34" rx="2"/><path d="M11 22h34M11 34h34M22 11v34M34 11v34"/></svg><span>Ảnh biến thể</span><small>Ảnh sau nén và đổi kích thước sẽ hiện ở đây</small></div><div class="zoom-layer"><img id="result-image" alt="Ảnh biến thể đang được chọn" hidden><canvas id="diff-canvas" hidden></canvas></div></div>
+          <div class="image-footer"><span id="result-size">—</span><span id="result-note"></span></div>
+        </figure>
+        <input type="range" class="split-range" id="split-range" min="0" max="100" value="50" aria-label="Vị trí đường chia giữa ảnh gốc và biến thể" hidden>
+      </div>
+
+      <div class="viewer-foot">
+        <div class="variant-nav">
+          <button type="button" class="tool-button" id="variant-prev" aria-label="Phiên bản trước">‹</button>
+          <select id="variant-select" aria-label="Chọn vòng xử lý" disabled><option>Sau khi chạy thí nghiệm</option></select>
+          <button type="button" class="tool-button" id="variant-next" aria-label="Phiên bản sau">›</button>
+        </div>
+        <div class="diff-tools" id="diff-tools" hidden>
+          <label for="diff-gain">Khuếch đại</label>
+          <select id="diff-gain"><option value="4">×4</option><option value="8" selected>×8</option><option value="16">×16</option><option value="32">×32</option></select>
+          <button type="button" class="info-link" data-guide="guide-diff">Bản đồ này là gì?</button>
+        </div>
+      </div>
+
+      <section class="trajectory" id="trajectory-panel" aria-labelledby="trajectory-title">
+        <div class="chart-heading"><h3 id="trajectory-title">Điểm AI qua các vòng xử lý</h3><span class="chart-legend"><i aria-hidden="true"></i> B-Free · bấm một điểm để xem ảnh đó</span></div>
+        <div class="chart-area" id="score-chart"><div class="chart-empty"><p>Kết quả đo thực tế sẽ hiện ở đây.</p></div></div>
+      </section>
     </section>
 
-    <ol class="workflow" aria-label="Quy trình phân tích">
-      <li class="current" id="step-source"><span>01</span> Chọn ảnh <i aria-hidden="true">↗</i></li>
-      <li id="step-transform"><span>02</span> Biến đổi ảnh <i aria-hidden="true">↗</i></li>
-      <li id="step-measure"><span>03</span> Đọc kết quả <i aria-hidden="true">↗</i></li>
-      <li id="step-region"><span>04</span> Kiểm tra từng vùng</li>
-    </ol>
+    <!-- Right pane: evidence -->
+    <section class="pane pane-evidence" aria-label="Kết quả đo">
+      <section class="panel agent-overview" id="agent-overview" aria-labelledby="agent-title" hidden>
+        <div class="panel-header"><div><div class="eyebrow">PHÂN TÍCH CÓ GIỚI HẠN</div><h2 id="agent-title">Kết quả đo dẫn lối cho phép thử.</h2></div><span class="small-tag" id="agent-state">SẴN SÀNG</span></div>
+        <div class="agent-progress"><div><span class="agent-progress-dot" id="agent-progress-dot" aria-hidden="true"></span><p id="agent-current-step" role="status">Chọn ảnh, đặt giới hạn lượt gọi rồi bắt đầu phân tích.</p></div><button type="button" class="secondary-button" id="cancel-investigation" hidden>Dừng sau lượt đang chạy</button><button type="button" class="secondary-button" id="resume-investigation" hidden>Kết nối lại để theo dõi</button></div>
+        <div class="agent-counts"><span><strong id="agent-tool-count">0 / 4</strong> lượt gọi mô hình</span><span><strong id="agent-planner-count">0</strong> lượt gọi Qwen</span><span><strong id="agent-runtime">—</strong> thời gian</span></div>
+        <div class="agent-conclusion" id="agent-conclusion" hidden><div class="eyebrow">DỰA TRÊN KẾT QUẢ ĐO</div><h3 id="agent-summary-title"></h3><div id="agent-facts"></div><p class="agent-stop" id="agent-stop"></p><details class="agent-limits"><summary>Giới hạn của lần phân tích này</summary><ul id="agent-warnings"></ul></details></div>
+        <div class="agent-error" id="agent-error" role="alert" hidden></div>
+      </section>
 
-    <div id="alert" class="alert" role="alert" hidden></div>
-    <div class="workspace" id="workspace">
-      <aside class="controls" aria-label="Ảnh nguồn và thiết lập thí nghiệm">
-        <form id="experiment-form">
-          <section class="control-section source-section">
-            <div class="section-heading"><h2><span class="section-number">01</span> Ảnh nguồn</h2><span class="micro-label" id="file-state">CHƯA CHỌN ẢNH</span></div>
-            <label class="dropzone" id="dropzone" for="image-file">
-              <input type="file" id="image-file" accept="image/jpeg,image/png,image/webp" aria-describedby="upload-hint">
-              <svg class="upload-icon" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="4.5" y="8.5" width="31" height="26" rx="3"/><path d="m8 29 8-8 6 6 4-4 6 6M20 2v13m-5-8 5-5 5 5"/><circle cx="28" cy="16" r="2"/></svg>
-              <strong id="upload-title">Thả ảnh vào đây</strong><span id="upload-subtitle">hoặc <u>chọn tệp ảnh</u></span><small id="upload-hint">JPEG, PNG hoặc WebP · tối đa 20 MiB</small>
-            </label>
-            <div class="file-detail" id="file-detail" hidden><span class="file-icon" aria-hidden="true">▧</span><div><strong id="file-name"></strong><span id="file-meta"></span></div><button type="button" id="clear-file" class="icon-button" aria-label="Bỏ ảnh đã chọn">×</button></div>
-            <p class="local-note"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V4a3 3 0 0 1 6 0v3"/></svg> Xử lý ngay trên máy của bạn.</p>
-            <button type="button" id="example-button" class="example-button">Mở ví dụ đã kiểm chứng <span aria-hidden="true">↗</span></button><p class="example-help">Ảnh mẫu chính thức · kết quả đo đã lưu</p>
-          </section>
+      <section class="panel evidence-panel" id="fixed-evidence-panel" aria-labelledby="evidence-title">
+        <div class="panel-header"><div><div class="eyebrow">KẾT QUẢ ĐO</div><h2 id="evidence-title">Điểm số chưa phải kết luận.</h2></div><span class="small-tag" id="evidence-tag">CHƯA PHẢI KẾT LUẬN</span></div>
+        <div class="metrics"><div><span>Điểm AI ảnh gốc</span><strong id="metric-original">—</strong><small id="metric-original-help">Đang chờ phép đo</small></div><div><span>Khoảng điểm</span><strong id="metric-range">—</strong><small>Trên các phép đo hiện có</small></div><div><span>Đổi phân loại</span><strong id="metric-flips">—</strong><small id="metric-threshold-help">So với ảnh gốc · ngưỡng &gt; 0,50</small></div></div>
+        <div class="interpretation" id="interpretation"><h3 id="summary-title">Đặt câu hỏi, giữ sự thận trọng.</h3><p id="summary-text">Mô hình có phản hồi ổn định khi ảnh được nén lại hoặc đổi kích thước? Công cụ ghi nhận sự thay đổi, chưa đủ để xác định nguồn gốc ảnh.</p><details class="run-limits" id="warnings-details" hidden><summary>Giới hạn của lần chạy này <span id="warnings-count"></span></summary><ul id="warnings"></ul></details></div>
+      </section>
 
-          <section class="control-section workflow-section">
-            <div class="section-heading"><h2><span class="section-number">02</span> Cách phân tích</h2></div>
-            <fieldset class="approach-field"><legend class="sr-only">Chọn cách phân tích</legend><label class="approach-option"><input type="radio" name="workflow_mode" value="fixed" checked><span><strong>Thí nghiệm theo cấu hình</strong><small>Bạn chọn phép biến đổi và số vòng xử lý.</small></span></label><label class="approach-option"><input type="radio" name="workflow_mode" value="adaptive"><span><strong>Phân tích thích ứng</strong><small>AI trên máy chọn phép thử dựa trên kết quả đo.</small></span></label></fieldset>
-            <div id="agent-settings" hidden>
-              <div class="planner-status"><strong>Qwen chọn phép thử</strong><span class="availability" id="planner-badge">ĐANG KIỂM TRA</span></div><p id="planner-status" class="field-help">Đang kiểm tra mô hình chọn phép thử…</p>
-              <label class="field-label budget-label" for="agent-budget">Số lượt gọi mô hình tối đa</label><select id="agent-budget" aria-describedby="budget-help"><option value="2">2 lượt · kiểm tra nhanh</option><option value="3">3 lượt</option><option value="4" selected>4 lượt · tiêu chuẩn</option><option value="5">5 lượt</option><option value="6">6 lượt · mở rộng</option></select><p class="field-help" id="budget-help">Bao gồm lượt đo ảnh gốc bằng B-Free. AI có thể dừng sớm; mỗi quyết định chọn phép thử được ghi lại riêng.</p>
-              <label class="checkbox-field"><input id="allow-regional" type="checkbox" checked><span>Cho phép TruFor kiểm tra từng vùng<small>Có thể mất thêm vài phút. Bản đồ thể hiện dấu hiệu chỉnh sửa cục bộ, không xác định điểm ảnh do AI tạo.</small></span></label>
-              <p class="agent-branch-note">Mỗi phép thử bắt đầu từ cùng một ảnh gốc. Các phép thử là những nhánh riêng, dù một nhánh có thể xử lý ảnh nhiều vòng.</p>
-            </div>
-          </section>
-          <section class="control-section protocol-section" id="fixed-settings">
-            <div class="section-heading"><h2><span class="section-number">02</span> Thiết lập thí nghiệm</h2></div>
-            <label class="field-label" for="operation">Phép biến đổi</label>
-            <select id="operation" name="operation"><option value="combined">Nén + đổi kích thước</option><option value="jpeg">Chỉ nén JPEG</option><option value="resize">Chỉ đổi kích thước</option></select>
-            <div class="slider-field" id="quality-field"><div class="field-row"><label for="quality">Chất lượng JPEG</label><output for="quality" id="quality-value">90</output></div><input type="range" id="quality" min="50" max="100" value="90" step="1"><div class="range-labels"><span>50 · nén mạnh hơn</span><span>100 · nén nhẹ hơn</span></div></div>
-            <div class="slider-field" id="scale-field"><div class="field-row"><label for="scale">Tỉ lệ kích thước mỗi vòng</label><output for="scale" id="scale-value">90%</output></div><input type="range" id="scale" min="50" max="100" value="90" step="5"><div class="range-labels"><span>50% · thu nhỏ</span><span>100% · giữ nguyên</span></div></div>
-            <div class="two-fields"><div><label class="field-label" for="rounds">Số vòng</label><select id="rounds"><option value="1">1 vòng</option><option value="2">2 vòng</option><option value="3" selected>3 vòng</option><option value="4">4 vòng</option><option value="5">5 vòng</option></select></div><div id="order-field"><label class="field-label" for="order">Thứ tự</label><select id="order"><option value="resize-jpeg">Đổi cỡ → JPEG</option><option value="jpeg-resize">JPEG → đổi cỡ</option></select></div></div>
-            <fieldset class="mode-field"><legend>Chế độ xử lý</legend><div class="segmented"><label><input type="radio" name="mode" value="cumulative" checked><span>Nối tiếp</span></label><label><input type="radio" name="mode" value="independent"><span>Đối chứng một lượt</span></label></div></fieldset>
-            <p class="field-help" id="mode-help">Mỗi vòng xử lý ảnh từ kết quả vòng trước, giữ lại tác động tích lũy.</p>
-            <details class="advanced"><summary>Ngưỡng phân loại <span id="threshold-summary">0,50</span></summary><div class="slider-field"><div class="field-row"><label for="threshold">Ngưỡng khảo sát</label><output for="threshold" id="threshold-value">0,50</output></div><input type="range" id="threshold" min="0" max="100" step="5" value="50"><p class="field-help">Dùng để đếm số biến thể đổi phân loại so với ảnh gốc. Ngưỡng này chưa được kiểm chứng cho ảnh của bạn.</p></div></details>
-            <div class="protocol-preview"><span class="micro-label">CHUỖI XỬ LÝ</span><p id="sequence">Gốc → V1 → V2 → V3</p><small id="sequence-detail">3 vòng · Q90 · 90% mỗi vòng</small></div>
-          </section>
-          <div class="run-controls"><button class="primary-button" type="submit" id="run-button" disabled><span id="run-label">Chạy thí nghiệm</span><svg id="run-arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg><span class="spinner" id="run-spinner" hidden></span></button><p class="run-help" id="run-help">Chọn ảnh để bắt đầu phân tích.</p></div>
-        </form>
-        <div class="controls-footnote"><span class="tiny-cross" aria-hidden="true">+</span><span>Một ảnh gốc, các biến thể có thể truy vết.<br>Đo trước, kết luận sau.</span></div>
-      </aside>
+      <section class="panel measurements-panel" id="measurements-panel" aria-labelledby="measurements-title" hidden>
+        <div class="panel-header"><div><div class="eyebrow">NHẬT KÝ THÍ NGHIỆM</div><h2 id="measurements-title">Từng vòng xử lý</h2></div><div class="exports"><a id="export-csv" class="text-button" download>CSV <span aria-hidden="true">↓</span></a><a id="export-json" class="text-button" download>JSON <span aria-hidden="true">↓</span></a></div></div>
+        <p class="record-config" id="record-config"></p>
+        <div class="table-scroll" tabindex="0" aria-label="Bảng kết quả đo có thể cuộn ngang"><table><thead><tr><th scope="col">Biến thể</th><th scope="col">Điểm AI</th><th scope="col">So với ngưỡng</th><th scope="col">Kích thước</th><th scope="col">PSNR</th><th scope="col">MSE</th><th scope="col">Dung lượng</th></tr></thead><tbody id="measurements-body"></tbody></table></div>
+        <p class="table-note">PSNR và MSE so với ảnh gốc đổi trực tiếp về cùng kích thước. <button type="button" class="info-link" data-guide="guide-table">Đọc bảng này thế nào?</button></p>
+        <details class="provenance"><summary>Nguồn gốc ảnh &amp; thông tin phiên</summary><dl><div><dt>Mã phiên</dt><dd id="run-id"></dd></div><div><dt>SHA-256 tệp tải lên</dt><dd id="source-hash"></dd></div><div><dt>Mô hình phát hiện</dt><dd id="detector-name"></dd></div></dl><p>Mã băm của từng tệp, mã băm ảnh đầu vào của mỗi bước và các thao tác xử lý được lưu trong JSON.</p></details>
+      </section>
 
-      <div class="results-column">
-        <section class="model-strip" aria-label="Trạng thái mô hình">
-          <div><span class="model-mark">B</span><div><strong>B-Free <span>Phát hiện ảnh AI</span></strong><p id="bfree-status">Đang kiểm tra mô hình…</p></div></div><span class="availability" id="bfree-badge">ĐANG KIỂM TRA</span>
-        </section>
-        <section class="panel agent-overview" id="agent-overview" aria-labelledby="agent-title" hidden>
-          <div class="panel-header"><div><div class="eyebrow">PHÂN TÍCH CÓ GIỚI HẠN</div><h2 id="agent-title">Kết quả đo dẫn lối cho phép thử.</h2></div><span class="small-tag" id="agent-state">SẴN SÀNG</span></div>
-          <p class="agent-intro">B-Free đo ảnh gốc trước. Sau đó, Qwen chạy trên máy chọn phép thử tiếp theo từ danh sách cho phép, dựa trên kết quả đã ghi nhận và số lượt còn lại.</p>
-          <div class="agent-progress"><div><span class="agent-progress-dot" id="agent-progress-dot" aria-hidden="true"></span><p id="agent-current-step" role="status">Chọn ảnh, đặt giới hạn lượt gọi rồi bắt đầu phân tích.</p></div><button type="button" class="secondary-button" id="cancel-investigation" hidden>Dừng sau lượt đang chạy</button><button type="button" class="secondary-button" id="resume-investigation" hidden>Kết nối lại để theo dõi</button></div>
-          <div class="agent-counts"><span><strong id="agent-tool-count">0 / 4</strong> lượt gọi mô hình</span><span><strong id="agent-planner-count">0</strong> lượt gọi Qwen</span><span><strong id="agent-runtime">—</strong> thời gian đã chạy</span></div>
-          <div class="agent-conclusion" id="agent-conclusion" hidden><div class="eyebrow">DỰA TRÊN KẾT QUẢ ĐO</div><h3 id="agent-summary-title"></h3><div id="agent-facts"></div><p class="agent-stop" id="agent-stop"></p><details class="agent-limits"><summary>Giới hạn khi diễn giải</summary><ul id="agent-warnings"></ul></details></div>
-          <div class="agent-error" id="agent-error" role="alert" hidden></div>
-        </section>
-        <section class="panel preview-panel" aria-labelledby="preview-title">
-          <div class="panel-header"><div><div class="eyebrow">ĐỐI CHIẾU HÌNH ẢNH</div><h2 id="preview-title">Theo dõi ảnh sau biến đổi.</h2></div><span class="small-tag" id="preview-tag">ĐANG CHỜ ẢNH</span></div>
-          <div class="preview-grid">
-            <figure class="image-figure"><figcaption><span><i class="legend-dot source-dot" aria-hidden="true"></i> Ảnh gốc</span><span class="image-dimensions" id="original-dimensions">— × —</span></figcaption><div class="image-stage" id="original-stage"><div class="empty-preview" id="original-empty"><svg viewBox="0 0 56 56" aria-hidden="true"><path d="M8 20V8h12M36 8h12v12M48 36v12H36M20 48H8V36"/><path d="M20 28h16M28 20v16"/></svg><span>Ảnh nguồn của bạn</span><small>Điểm bắt đầu của mọi phép đo</small></div><img id="original-image" alt="Ảnh gốc đã tải lên" hidden></div><div class="image-footer"><span id="original-format">ẢNH NGUỒN</span><span id="original-size">Tệp đầu vào chưa thay đổi</span></div></figure>
-            <figure class="image-figure"><figcaption><label for="variant-select"><i class="legend-dot result-dot" aria-hidden="true"></i> Kết quả</label><select id="variant-select" aria-label="Chọn vòng xử lý" disabled><option>Sau khi chạy thí nghiệm</option></select></figcaption><div class="image-stage" id="result-stage"><div class="empty-preview" id="result-empty"><svg viewBox="0 0 56 56" aria-hidden="true"><rect x="11" y="11" width="34" height="34" rx="2"/><path d="M11 22h34M11 34h34M22 11v34M34 11v34"/></svg><span>Đối chiếu ảnh biến thể</span><small>Ảnh sau nén và đổi kích thước sẽ hiện ở đây</small></div><img id="result-image" alt="Ảnh biến thể đang được chọn" hidden></div><div class="image-footer"><span id="result-dimensions">CHƯA ĐO</span><span id="result-size">—</span></div></figure>
-          </div>
-          <div class="preview-note"><span aria-hidden="true">ⓘ</span><span>Ảnh xem trước được co vừa khung. Hãy xem số điểm ảnh để biết kích thước thực thay đổi thế nào.</span></div>
-        </section>
+      <section class="panel agent-record" id="agent-record" aria-labelledby="agent-record-title" hidden>
+        <div class="panel-header"><div><div class="eyebrow">NHẬT KÝ CÓ THỂ KIỂM TRA</div><h2 id="agent-record-title">Từ kết quả đo đến quyết định</h2></div><div class="exports"><a id="agent-export-csv" class="text-button" download hidden>CSV ↓</a><a id="agent-export-json" class="text-button" download hidden>JSON ↓</a></div></div>
+        <div class="agent-ledger"><section aria-labelledby="observations-title"><h3 id="observations-title">Kết quả từng phép đo</h3><div id="agent-observations"><p class="agent-empty">Kết quả sẽ xuất hiện khi mỗi phép thử hoàn tất.</p></div></section><section aria-labelledby="decisions-title"><h3 id="decisions-title">Phép thử được AI chọn</h3><div id="agent-decisions"><p class="agent-empty">Phép đo đầu tiên là bắt buộc. Các bước tiếp theo được chọn dựa trên kết quả đã có.</p></div></section></div>
+        <div class="agent-maps" id="agent-maps" hidden><h3>Kiểm tra từng vùng trên ảnh gốc</h3><div class="regional-images" id="agent-regional-images"></div></div>
+        <details class="provenance"><summary>Thông tin phiên phân tích &amp; mô hình</summary><dl><div><dt>Mã phiên</dt><dd id="agent-run-id">—</dd></div><div><dt>SHA-256 ảnh nguồn</dt><dd id="agent-source-hash">—</dd></div><div><dt>Mô hình chọn phép thử</dt><dd id="agent-planner-name">—</dd></div></dl><p>Tệp JSON ghi lại dữ liệu có ở mỗi bước, các hành động được phép, thông tin mô hình và mức ưu tiên chọn hành động. Mức ưu tiên không phải độ tin cậy của kết luận. Phần tóm tắt được tạo từ giá trị đã đo.</p></details>
+      </section>
 
-        <section class="panel agent-record" id="agent-record" aria-labelledby="agent-record-title" hidden>
-          <div class="panel-header"><div><div class="eyebrow">NHẬT KÝ CÓ THỂ KIỂM TRA</div><h2 id="agent-record-title">Từ kết quả đo đến quyết định.</h2></div><div class="exports"><a id="agent-export-csv" class="text-button" download hidden>CSV ↓</a><a id="agent-export-json" class="text-button" download hidden>JSON ↓</a></div></div>
-          <p class="agent-record-note">Điểm AI và mức thay đổi là phản hồi của B-Free. Điểm TruFor phản ánh dấu hiệu chỉnh sửa và được trình bày riêng. Ngưỡng cố định là &gt; 0,50. PSNR so sánh với ảnh gốc đổi trực tiếp về kích thước của phép thử; ∞ nghĩa là các điểm ảnh trùng với ảnh tham chiếu đó.</p>
-          <div class="agent-ledger"><section aria-labelledby="observations-title"><h3 id="observations-title">Kết quả từng phép đo</h3><div id="agent-observations"><p class="agent-empty">Kết quả sẽ xuất hiện khi mỗi phép thử hoàn tất.</p></div></section><section aria-labelledby="decisions-title"><h3 id="decisions-title">Phép thử được AI chọn</h3><div id="agent-decisions"><p class="agent-empty">Phép đo đầu tiên là bắt buộc. Các bước tiếp theo được chọn dựa trên kết quả đã có.</p></div></section></div>
-          <div class="agent-maps" id="agent-maps" hidden><h3>Kết quả kiểm tra từng vùng trên ảnh gốc</h3><div class="regional-images" id="agent-regional-images"></div><p class="regional-caution">Đọc bản đồ bất thường cùng bản đồ độ tin cậy định vị. Các bản đồ này không xác định điểm ảnh do AI tạo.</p></div>
-          <details class="provenance"><summary>Thông tin phiên phân tích &amp; mô hình</summary><dl><div><dt>Mã phiên</dt><dd id="agent-run-id">—</dd></div><div><dt>SHA-256 ảnh nguồn</dt><dd id="agent-source-hash">—</dd></div><div><dt>Mô hình chọn phép thử</dt><dd id="agent-planner-name">—</dd></div></dl><p>Tệp JSON ghi lại dữ liệu có ở mỗi bước, các hành động được phép, thông tin mô hình và mức ưu tiên chọn hành động. Mức ưu tiên không phải độ tin cậy của kết luận. Phần tóm tắt được tạo từ giá trị đã đo.</p></details>
-        </section>
-
-        <section class="panel evidence-panel" id="fixed-evidence-panel" aria-labelledby="evidence-title">
-          <div class="panel-header"><div><div class="eyebrow">KẾT QUẢ ĐO</div><h2 id="evidence-title">Điểm số chưa phải kết luận.</h2></div><span class="small-tag" id="evidence-tag">CHƯA PHẢI KẾT LUẬN</span></div>
-          <div class="metrics"><div><span>Điểm AI của ảnh gốc</span><strong id="metric-original">—</strong><small id="metric-original-help">Đang chờ phép đo</small></div><div><span>Khoảng điểm</span><strong id="metric-range">—</strong><small>Trên các phép đo hiện có</small></div><div><span>Biến thể đổi phân loại</span><strong id="metric-flips">—</strong><small id="metric-threshold-help">So với ảnh gốc · ngưỡng &gt; 0,50</small></div></div>
-          <div class="chart-section"><div class="chart-heading"><h3>Điểm số qua các vòng xử lý</h3><span class="chart-legend"><i aria-hidden="true"></i> Điểm AI của B-Free</span></div><div class="chart-area" id="score-chart"><div class="chart-empty"><span class="empty-chart-glyph" aria-hidden="true">⌁</span><p>Kết quả đo thực tế sẽ hiện ở đây.</p><small>Chọn ảnh và chạy thí nghiệm để kiểm tra độ ổn định của điểm số.</small></div></div></div>
-          <div class="interpretation" id="interpretation"><span class="interpretation-symbol" aria-hidden="true">↳</span><div><h3 id="summary-title">Đặt câu hỏi, giữ sự thận trọng.</h3><p id="summary-text">Mô hình có phản hồi ổn định khi ảnh được nén lại hoặc đổi kích thước? Công cụ ghi nhận sự thay đổi, chưa đủ để xác định nguồn gốc ảnh.</p><ul id="warnings" hidden></ul></div></div>
-        </section>
-
-        <section class="panel measurements-panel" id="measurements-panel" aria-labelledby="measurements-title" hidden>
-          <div class="panel-header"><div><div class="eyebrow">NHẬT KÝ THÍ NGHIỆM</div><h2 id="measurements-title">Ghi lại từng vòng xử lý.</h2></div><div class="exports"><a id="export-csv" class="text-button" download>CSV <span aria-hidden="true">↓</span></a><a id="export-json" class="text-button" download>JSON <span aria-hidden="true">↓</span></a></div></div>
-          <p class="record-config" id="record-config"></p><div class="table-scroll" tabindex="0" aria-label="Bảng kết quả đo có thể cuộn ngang"><table><thead><tr><th scope="col">Biến thể</th><th scope="col">Kích thước</th><th scope="col">Dung lượng lưu</th><th scope="col">PSNR</th><th scope="col">MSE</th><th scope="col">Điểm AI</th><th scope="col">So với ngưỡng</th></tr></thead><tbody id="measurements-body"></tbody></table></div>
-          <p class="table-note">MSE và PSNR so sánh từng biến thể với ảnh gốc đổi trực tiếp về cùng kích thước. Dung lượng phụ thuộc định dạng lưu, gồm cả ảnh gốc chuẩn hóa dạng PNG; đây không phải tỉ lệ nén so với tệp tải lên.</p>
-          <details class="provenance"><summary>Nguồn gốc ảnh &amp; thông tin phiên</summary><dl><div><dt>Mã phiên</dt><dd id="run-id"></dd></div><div><dt>SHA-256 tệp tải lên</dt><dd id="source-hash"></dd></div><div><dt>Mô hình phát hiện</dt><dd id="detector-name"></dd></div></dl><p>Mã băm của từng tệp, mã băm ảnh đầu vào của mỗi bước và các thao tác xử lý được lưu trong JSON.</p></details>
-        </section>
-
-        <section class="panel regional-panel" id="fixed-regional-panel" aria-labelledby="regional-title">
-          <div class="regional-heading"><span class="region-icon" aria-hidden="true"><svg viewBox="0 0 30 30"><rect x="3" y="3" width="24" height="24" rx="2"/><rect x="12" y="8" width="10" height="13" rx="1"/><path d="M8 3v24M3 15h24"/></svg></span><div><div class="eyebrow">KIỂM TRA BỔ SUNG</div><h2 id="regional-title">Xem kỹ từng vùng ảnh.</h2><p>TruFor có thể định vị dấu hiệu chỉnh sửa bất thường trong ảnh gốc.</p></div><span class="availability" id="trufor-badge">ĐANG KIỂM TRA</span></div>
-          <div class="regional-action"><p id="regional-status">Đang kiểm tra TruFor…</p><button type="button" class="secondary-button" id="regional-button" disabled>Kiểm tra từng vùng <span aria-hidden="true">↗</span></button></div>
-          <div id="regional-results" hidden><div class="regional-images" id="regional-images"></div><p class="regional-result-text" id="regional-result-text"></p><ul class="regional-warnings" id="regional-warnings" hidden></ul></div>
-          <p class="regional-caution">Bản đồ nhiệt về chỉnh sửa không phải bản đồ vùng do AI tạo. Cần đọc cùng bản đồ độ tin cậy định vị; vùng có độ tin cậy thấp cần được diễn giải thận trọng hơn.</p>
-        </section>
-      </div>
-    </div>
-
-    <section class="method" id="method" aria-labelledby="method-title"><div><div class="eyebrow">DIỄN GIẢI THẬN TRỌNG</div><h2 id="method-title">Hiểu giới hạn của kết quả.</h2></div><div class="method-grid"><article><span>01 / PHÁT HIỆN</span><h3>Điểm số là phản hồi của mô hình.</h3><p>Điểm AI chưa phải xác suất đã được hiệu chuẩn rằng ảnh do AI tạo. Điểm cao hay thấp đều có thể sai, nhất là với ảnh khác dữ liệu huấn luyện.</p></article><article><span>02 / ĐỘ ỔN ĐỊNH</span><h3>Ổn định chưa có nghĩa là xác nhận.</h3><p>Các biến thể cùng xuất phát từ một ảnh nên có tương quan. Điểm số ổn định không phải bằng chứng độc lập xác nhận nguồn gốc.</p></article><article><span>03 / ĐỊNH VỊ</span><h3>Dấu hiệu bất thường cần bối cảnh.</h3><p>Chỉnh sửa thông thường cũng để lại dấu vết. Cần kiểm tra độ tin cậy của bản đồ vùng; chỉ riêng bản đồ không đủ để xác định ảnh do AI tạo.</p></article></div></section>
+      <section class="panel regional-panel" id="fixed-regional-panel" aria-labelledby="regional-title">
+        <div class="regional-heading"><div><div class="eyebrow">KIỂM TRA BỔ SUNG · TRUFOR</div><h2 id="regional-title">Dấu hiệu chỉnh sửa từng vùng</h2></div><span class="availability" id="trufor-badge">ĐANG KIỂM TRA</span></div>
+        <div class="regional-action"><p id="regional-status">Đang kiểm tra TruFor…</p><button type="button" class="secondary-button" id="regional-button" disabled>Kiểm tra từng vùng <span aria-hidden="true">↗</span></button></div>
+        <div id="regional-results" hidden><div class="regional-images" id="regional-images"></div><p class="regional-result-text" id="regional-result-text"></p><ul class="regional-warnings" id="regional-warnings" hidden></ul></div>
+        <p class="regional-caution">Bản đồ chỉnh sửa, không phải bản đồ vùng do AI tạo. <button type="button" class="info-link" data-guide="guide-regional">Vì sao?</button></p>
+      </section>
+    </section>
   </main>
-  <footer><span>GIÁM ĐỊNH ẢNH <i>/</i> BẢN THỬ NGHIỆM NGHIÊN CỨU</span><div><a href="https://github.com/grip-unina/B-Free" target="_blank" rel="noopener noreferrer">B-Free ↗</a><a href="https://github.com/grip-unina/TruFor" target="_blank" rel="noopener noreferrer">TruFor ↗</a><span>Kết luận từ phép đo.</span></div></footer>
+
+  <dialog class="guide" id="guide-dialog" aria-labelledby="guide-title">
+    <div class="guide-header"><div><div class="eyebrow">DIỄN GIẢI THẬN TRỌNG</div><h2 id="guide-title">Cách đọc kết quả</h2></div><button type="button" class="icon-button" id="guide-close" aria-label="Đóng">×</button></div>
+    <div class="guide-body">
+      <section id="guide-score"><h3>Điểm AI là phản hồi của mô hình</h3><p>B-Free trả về logit; giao diện hiển thị sigmoid của logit trên thang 0–1. Đây chưa phải xác suất đã được hiệu chuẩn rằng ảnh do AI tạo. Ảnh chỉ thuộc nhóm điểm cao khi điểm lớn hơn hẳn ngưỡng (&gt; 0,50). Điểm cao hay thấp đều có thể sai, nhất là với ảnh khác dữ liệu huấn luyện. Điểm thấp không chứng minh ảnh thật.</p></section>
+      <section id="guide-stability"><h3>Ổn định chưa có nghĩa là xác nhận</h3><p>Các biến thể cùng xuất phát từ một ảnh nên có tương quan. Điểm số giữ nguyên qua nhiều phép biến đổi cho thấy phản hồi của mô hình lặp lại được, không phải bằng chứng độc lập về nguồn gốc ảnh.</p></section>
+      <section id="guide-modes"><h3>Nối tiếp và đối chứng một lượt</h3><p><strong>Nối tiếp:</strong> mỗi vòng xử lý ảnh từ kết quả vòng trước; ở vòng r, kích thước đích là kích thước gốc × tỉ lệ<sup>r</sup>. <strong>Đối chứng một lượt:</strong> mỗi điều kiện bắt đầu lại từ ảnh gốc, đổi trực tiếp về cùng kích thước đích rồi nén JPEG một lần. Đối chứng chỉ nén JPEG có thể trùng nhau; đó là đối chứng có chủ đích, không phải bằng chứng độc lập thêm.</p></section>
+      <section id="guide-table"><h3>Bảng đo từng vòng</h3><p>MSE và PSNR so sánh từng biến thể với ảnh gốc được đổi trực tiếp (LANCZOS) về đúng kích thước của biến thể đó. PSNR ∞ nghĩa là điểm ảnh trùng hoàn toàn với ảnh tham chiếu. Sai khác điểm ảnh không phải bằng chứng ảnh AI. Dung lượng phụ thuộc định dạng lưu, gồm cả ảnh gốc chuẩn hóa dạng PNG, nên không phải tỉ lệ nén so với tệp tải lên.</p></section>
+      <section id="guide-viewer"><h3>Khung so sánh</h3><p>Ảnh được co vừa khung để so sánh, nên ảnh đã thu nhỏ trông cùng cỡ với ảnh gốc. Hãy xem số điểm ảnh ở chú thích để biết kích thước thật. Khi phóng to từ 200% trở lên, điểm ảnh được hiển thị sắc nét để thấy rõ khối nén JPEG.</p></section>
+      <section id="guide-diff"><h3>Bản đồ khác biệt</h3><p>Bản đồ tô màu |ảnh gốc − biến thể| sau khi đưa ảnh gốc về cùng kích thước với biến thể, rồi khuếch đại để dễ nhìn: tối là gần giống, sáng là khác nhiều. Bản đồ được tính ngay trên trình duyệt nên chỉ để quan sát. Phép thu nhỏ của trình duyệt khác LANCZOS, vì vậy số đo chính thức vẫn là MSE/PSNR trong bảng.</p></section>
+      <section id="guide-regional"><h3>TruFor kiểm tra từng vùng</h3><p>TruFor định vị dấu hiệu chỉnh sửa cục bộ, không xác định điểm ảnh do AI tạo. Hãy đọc bản đồ bất thường cùng bản đồ độ tin cậy định vị: vùng có độ tin cậy thấp cần diễn giải thận trọng hơn. Chỉnh sửa thông thường cũng để lại dấu vết. Điểm TruFor được trình bày riêng và không bao giờ gộp với B-Free.</p></section>
+      <section id="guide-agent"><h3>Phân tích thích ứng</h3><p>B-Free đo ảnh gốc trước. Sau đó Qwen chạy trên máy chọn phép thử tiếp theo từ danh sách cho phép, dựa trên kết quả đã ghi nhận và số lượt còn lại. Qwen không nhận ảnh, tên tệp hay nhãn. Phần tóm tắt được tính từ giá trị đã đo, có mã bằng chứng E1, E2… dẫn về từng phép đo.</p></section>
+      <section id="guide-missing"><h3>Khi thiếu mô hình</h3><p>Nếu chưa cấu hình mô hình, ứng dụng vẫn biến đổi ảnh và đo sai khác điểm ảnh, nhưng điểm AI để trống. Kết quả thiếu hoặc lỗi không bao giờ được thay bằng 0, heuristic hay bản đồ nhiệt giả.</p></section>
+      <p class="guide-sources">Mô hình: <a href="https://github.com/grip-unina/B-Free" target="_blank" rel="noopener noreferrer">B-Free ↗</a> · <a href="https://github.com/grip-unina/TruFor" target="_blank" rel="noopener noreferrer">TruFor ↗</a> · Bản thử nghiệm nghiên cứu, chạy trên máy.</p>
+    </div>
+  </dialog>
   <div class="sr-only" id="live-status" role="status" aria-live="polite"></div>
 </body>
 </html>

@@ -35,6 +35,9 @@
     "Local model installed; selected actions are constrained and budgeted.": "Đã cài mô hình trên máy. AI chỉ được chọn công cụ cho phép và phải tuân thủ giới hạn lượt gọi.",
     "Install the pinned local planner with scripts/install-planner.py.": "Cài mô hình chọn phép thử bằng scripts/install-planner.py.",
     "B-Free repository and weights are not configured.": "Chưa cấu hình mã nguồn và trọng số B-Free.",
+    "Set BFREE_REPO and install the official B-Free checkpoint to enable AI scoring.": "Chưa cấu hình B-Free: cần đặt BFREE_REPO và cài trọng số chính thức để đo điểm AI.",
+    "An analysis is already running. Please wait for it to finish.": "Một thí nghiệm khác đang chạy. Hãy chờ hoàn tất rồi thử lại.",
+    "Request exceeds upload limit.": "Yêu cầu vượt quá giới hạn tải lên.",
     "Configured; model dependencies and weights are checked when scanning.": "Đã cấu hình. Thư viện và trọng số sẽ được kiểm tra khi chạy.",
     "Set TRUFOR_REPO and install its pretrained model to enable regional evidence.": "Cần cấu hình TRUFOR_REPO và cài trọng số TruFor để kiểm tra từng vùng.",
     "At least one inference failed; inspect per-image errors.": "Có lượt suy luận gặp lỗi. Hãy xem chi tiết lỗi của từng ảnh.",
@@ -100,6 +103,7 @@
     if ((match = value.match(/^TruFor returned a local-manipulation score of ([\d.]+)\. Its maps address manipulation anomalies, not AI origin\.$/))) return `TruFor trả về điểm chỉnh sửa cục bộ ${numberText(Number(match[1]), 4)}. Bản đồ phản ánh dấu hiệu chỉnh sửa bất thường, không xác định nguồn gốc AI.`;
     if ((match = value.match(/^(\d+) of (\d+) derivatives cross the configured ([\d.]+) threshold relative to the original\. Treat this image as inconclusive and inspect its provenance\.$/))) return `${match[1]} trong ${match[2]} biến thể đổi phía so với ảnh gốc tại ngưỡng ${numberText(Number(match[3]), 2)}. Chưa thể kết luận nguồn gốc ảnh; cần kiểm tra thêm thông tin xuất xứ.`;
     if ((match = value.match(/^Source mode (.+) converted to RGB; no ICC profile conversion applied\.$/))) return `Ảnh nguồn ở chế độ ${match[1]} đã được chuyển sang RGB; không áp dụng chuyển đổi hồ sơ màu ICC.`;
+    if ((match = value.match(/^B-Free could not load: (.+)$/))) return `Không tải được B-Free. Chi tiết kỹ thuật: ${match[1]}`;
     if ((match = value.match(/^Running (\S+)$/))) return `Đang chạy: ${toolName(match[1])}`;
     if ((match = value.match(/^Investigation stopped: (.+)$/))) return `Phiên đã dừng: ${({ cancelled: "theo yêu cầu", "planner failed": "mô hình chọn phép thử gặp lỗi", "original detector failed": "phép đo ảnh gốc gặp lỗi", "budget exhausted": "đã hết lượt gọi" })[match[1]] || match[1]}`;
     // Preserve unrecognized diagnostics verbatim; never infer a translated scientific claim.
@@ -213,10 +217,12 @@
     $("agent-record").hidden = !adaptive;
     $("fixed-evidence-panel").hidden = adaptive;
     $("fixed-regional-panel").hidden = adaptive;
+    $("trajectory-panel").hidden = adaptive;
     $("measurements-panel").hidden = adaptive || !state.report;
     $("preview-title").textContent = adaptive ? "Đối chiếu ảnh từ phép thử." : "Theo dõi ảnh sau biến đổi.";
     $("variant-select").setAttribute("aria-label", adaptive ? "Chọn phép thử đã có kết quả" : "Chọn vòng xử lý");
     clearResults(true);
+    viewer.reset();
     if (adaptive && state.investigation) renderInvestigation(state.investigation);
     else if (!adaptive && state.report) renderReport(state.report);
     updateConfig();
@@ -320,6 +326,9 @@
     $("result-empty").hidden = false;
     $("result-dimensions").textContent = "CHƯA ĐO";
     $("result-size").textContent = "—";
+    $("result-label").textContent = "Kết quả";
+    $("result-note").textContent = "";
+    viewer.refresh();
     $("variant-select").replaceChildren(el("option", adaptiveMode() ? "Sau khi có kết quả" : "Sau khi chạy thí nghiệm"));
     $("variant-select").disabled = true;
     $("preview-tag").textContent = state.file ? "ĐÃ CHỌN ẢNH" : "ĐANG CHỜ ẢNH";
@@ -331,12 +340,12 @@
     $("evidence-tag").textContent = "CHƯA PHẢI KẾT LUẬN";
     $("summary-title").textContent = "Đặt câu hỏi, giữ sự thận trọng.";
     $("summary-text").textContent = "Mô hình có phản hồi ổn định khi ảnh được nén lại hoặc đổi kích thước? Công cụ ghi nhận sự thay đổi, chưa đủ để xác định nguồn gốc ảnh.";
-    $("warnings").hidden = true;
+    $("warnings-details").hidden = true;
     $("warnings").replaceChildren();
     emptyChart("Kết quả đo thực tế sẽ hiện ở đây.", "Chọn ảnh và chạy thí nghiệm để kiểm tra độ ổn định của điểm số.");
     $("step-measure").classList.remove("current");
     $("step-region").classList.remove("current");
-    if (state.status) setModelState("trufor", state.status.trufor);
+    if (state.status) { setModelState("bfree", state.status.bfree); setModelState("trufor", state.status.trufor); }
     updateRegionalButton();
   }
 
@@ -368,6 +377,7 @@
       if (previousURL) URL.revokeObjectURL(previousURL);
       state.file = file; state.base64 = base64; state.objectURL = objectURL;
       clearResults();
+      viewer.reset();
       setPreview($("original-image"), objectURL);
       $("original-image").hidden = false;
       $("original-empty").hidden = true;
@@ -414,7 +424,7 @@
     $("upload-subtitle").replaceChildren(document.createTextNode("hoặc "), el("u", "chọn tệp ảnh"));
     $("step-transform").classList.remove("current");
     $("run-button").disabled = true;
-    clearResults(); updateConfig(); showError("");
+    clearResults(); viewer.reset(); updateConfig(); showError("");
     $("image-file").focus();
     announce("Đã bỏ ảnh đã chọn.");
   }
@@ -424,8 +434,8 @@
     const variants = report.variants || [];
     const available = variants.filter((variant) => numeric(variant.score) && variant.score >= 0 && variant.score <= 1);
     if (!available.length) { emptyChart("Chưa có điểm số từ mô hình.", "Đã có ảnh biến đổi và phép đo điểm ảnh. Cần cấu hình trọng số B-Free để đo điểm AI."); return; }
-    const width = Math.max(300, Math.min(680, $("score-chart").clientWidth || 680));
-    const height = 225, left = 37, right = 22, top = 25, bottom = 35;
+    const width = Math.max(300, Math.min(1100, $("score-chart").clientWidth || 680));
+    const height = 170, left = 40, right = 22, top = 18, bottom = 28;
     const plotWidth = width - left - right, plotHeight = height - top - bottom;
     const x = (index) => left + index * plotWidth / Math.max(variants.length - 1, 1);
     const y = (score) => top + (1 - score) * plotHeight;
@@ -436,10 +446,12 @@
     });
     const threshold = numeric(report.config?.threshold) ? report.config.threshold : 0.5;
     svg.append(svgEl("line", { x1: left, x2: width - right, y1: y(threshold), y2: y(threshold), stroke: "#b59b6d", "stroke-width": 1, "stroke-dasharray": "4 4" }));
-    svg.append(svgEl("text", { x: width - right, y: Math.max(12, y(threshold) - 7), "text-anchor": "end", fill: "#946b35", "font-size": 10, "font-family": "sans-serif" }, `ngưỡng ${numberText(threshold, 2)}`));
+    svg.append(svgEl("text", { x: left + 6, y: Math.max(12, y(threshold) - 6), "text-anchor": "start", fill: "#946b35", "font-size": 10, "font-family": "sans-serif" }, `ngưỡng ${numberText(threshold, 2)}`));
+    const selectedIndex = variants.findIndex((variant) => variant.id === state.selected);
+    if (selectedIndex >= 0) svg.append(svgEl("rect", { x: x(selectedIndex) - 18, y: top - 8, width: 36, height: plotHeight + 16, rx: 5, fill: "#e4f1ea" }));
     let previous = null;
     variants.forEach((variant, index) => {
-      svg.append(svgEl("text", { x: x(index), y: height - 12, "text-anchor": "middle", fill: "#687777", "font-size": 10, "font-family": "sans-serif" }, variant.round === 0 ? "Gốc" : `V${variant.round ?? index}`));
+      svg.append(svgEl("text", { x: x(index), y: height - 8, "text-anchor": "middle", fill: "#687777", "font-size": 10, "font-family": "sans-serif" }, variant.round === 0 ? "Gốc" : `V${variant.round ?? index}`));
       if (!numeric(variant.score) || variant.score < 0 || variant.score > 1) { previous = null; return; }
       const point = { x: x(index), y: y(variant.score) };
       if (previous) svg.append(svgEl("line", { x1: previous.x, x2: point.x, y1: previous.y, y2: point.y, stroke: "#1d807f", "stroke-width": 2 }));
@@ -447,9 +459,15 @@
     });
     variants.forEach((variant, index) => {
       if (!numeric(variant.score) || variant.score < 0 || variant.score > 1) return;
-      const dot = svgEl("circle", { cx: x(index), cy: y(variant.score), r: variant.id === state.selected ? 5 : 3.5, fill: "#fffefa", stroke: "#1d807f", "stroke-width": 2 });
-      dot.append(svgEl("title", {}, `${variantName(variant)}: ${numberText(variant.score, 4)}`));
-      svg.append(dot);
+      // Each measured point selects its derivative in the viewer.
+      const label = `${variantName(variant)}: ${numberText(variant.score, 4)}`;
+      const point = svgEl("g", { class: "point", tabindex: "0", role: "button", "aria-label": `Xem ${label}`, "aria-pressed": String(variant.id === state.selected) });
+      point.append(svgEl("circle", { class: "hit", cx: x(index), cy: y(variant.score), r: 14, fill: "transparent" }));
+      point.append(svgEl("circle", { class: "dot", cx: x(index), cy: y(variant.score), r: variant.id === state.selected ? 6 : 4, fill: variant.id === state.selected ? "#1d807f" : "#fffefa", stroke: "#1d807f", "stroke-width": 2 }));
+      point.append(svgEl("title", {}, label));
+      point.addEventListener("click", () => selectVariant(variant.id));
+      point.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectVariant(variant.id); } });
+      svg.append(point);
     });
     $("score-chart").replaceChildren(svg);
   }
@@ -468,8 +486,11 @@
     }
     $("result-dimensions").textContent = `${dimensions(variant)} PX`;
     $("result-size").textContent = bytesText(variant.bytes);
+    $("result-label").textContent = variantName(variant);
+    $("result-note").textContent = numeric(variant.score) ? `Điểm AI ${scoreText(variant.score)}` : "";
     for (const row of $("measurements-body").rows) row.classList.toggle("selected", row.dataset.variant === id);
     renderChart();
+    viewer.refresh();
   }
 
   function renderMeasurements(report) {
@@ -484,7 +505,7 @@
       else if (variant.mse === 0) psnr = "∞ (trùng tham chiếu)";
       const scoreCell = el("td", scoreText(variant.score), numeric(variant.score) ? "score-cell" : undefined);
       if (variant.error) scoreCell.title = errorText(variant.error);
-      row.append(first, el("td", dimensions(variant)), el("td", bytesText(variant.bytes)), el("td", psnr), el("td", numberText(variant.mse, 3)), scoreCell, el("td", numeric(variant.score) ? variant.score > threshold ? "Trên ngưỡng" : "Bằng / dưới ngưỡng" : "Chưa đo"));
+      row.append(first, scoreCell, el("td", numeric(variant.score) ? variant.score > threshold ? "Trên ngưỡng" : "Bằng / dưới ngưỡng" : "Chưa đo"), el("td", dimensions(variant)), el("td", psnr), el("td", numberText(variant.mse, 3)), el("td", bytesText(variant.bytes)));
       return row;
     });
     $("measurements-body").replaceChildren(...rows);
@@ -528,7 +549,8 @@
     $("summary-text").textContent = translate(report.summary?.text) || "Hãy xem từng phép đo và giới hạn của mô hình trước khi diễn giải kết quả.";
     const warnings = Array.isArray(report.summary?.warnings) ? report.summary.warnings : [];
     $("warnings").replaceChildren(...warnings.map((warning) => el("li", translate(warning))));
-    $("warnings").hidden = !warnings.length;
+    $("warnings-count").textContent = `(${warnings.length})`;
+    $("warnings-details").hidden = !warnings.length;
     renderMeasurements(report);
     selectVariant(variants[variants.length - 1].id);
     $("step-measure").classList.add("current");
@@ -590,8 +612,11 @@
     $("result-empty").hidden = !!preview;
     if (preview) { setPreview($("result-image"), preview); $("result-image").alt = `${item.id}: ${toolName(item.tool)}, ${dimensions(item)} điểm ảnh`; }
     $("result-dimensions").textContent = `${dimensions(item)} PX`;
-    $("result-size").textContent = `${item.id} · ${item.tool === "baseline" ? "ẢNH GỐC" : "TỪ ẢNH GỐC"}`;
+    $("result-size").textContent = `${toolName(item.tool)}`;
+    $("result-label").textContent = item.id;
+    $("result-note").textContent = numeric(item.score) ? `Điểm ${scoreText(item.score)}` : "";
     document.querySelectorAll(".evidence-card").forEach((card) => { card.classList.toggle("selected", card.dataset.evidence === id); });
+    viewer.refresh();
   }
 
   function renderAgentLedger(report) {
@@ -820,6 +845,7 @@
       if (["cumulative", "independent"].includes(config.mode)) form.elements.mode.value = config.mode;
       renderReport(example.report);
       $("preview-tag").textContent = "KẾT QUẢ MẪU ĐÃ LƯU";
+      if (!state.status?.bfree?.available) $("bfree-status").textContent = "Đang xem điểm B-Free đã lưu từ lần chạy trước. B-Free trên máy này chưa cấu hình, nên lần chạy mới sẽ chỉ có phép đo ảnh.";
       $("file-state").textContent = "VÍ DỤ";
       announce("Đã mở ví dụ được kiểm chứng. Đây là kết quả đã lưu trên ảnh mẫu chính thức, chưa có lượt suy luận mới.");
     } catch (error) { showError(error.message || "Ví dụ đã lưu hiện không khả dụng."); }
@@ -866,6 +892,174 @@
       }
     } finally { state.regionalBusy = false; setBusy(false); updateRegionalButton(); }
   }
+
+  // Viewer: side by side, split slider, or a browser-computed difference map, with zoom and pan shared by both images.
+  const viewer = (() => {
+    const stage = $("viewer-stage");
+    const frames = [$("original-stage"), $("result-stage")];
+    const canvas = $("diff-canvas");
+    const wide = window.matchMedia("(min-width: 1180px)");
+    const zoomSteps = [1, 1.5, 2, 3, 4, 6, 8];
+    const MAX_DIFF_SIDE = 2048;
+    let view = "side", zoomIndex = 0, pan = { x: 0, y: 0 }, drag = null, diffKey = null, diffJob = 0;
+    const zoom = () => zoomSteps[zoomIndex];
+    // Dark = near-identical pixels, bright = large difference. Stops: ink, teal, amber, ivory.
+    const ramp = (() => {
+      const stops = [[0, [15, 31, 38]], [0.35, [29, 128, 127]], [0.7, [242, 196, 109]], [1, [255, 251, 232]]];
+      const table = new Uint8ClampedArray(256 * 3);
+      for (let i = 0; i < 256; i++) {
+        const t = i / 255;
+        const upper = stops.findIndex(([position]) => position >= t);
+        const [p1, c1] = stops[Math.max(upper, 1)], [p0, c0] = stops[Math.max(upper, 1) - 1];
+        const f = (t - p0) / (p1 - p0);
+        for (let k = 0; k < 3; k++) table[i * 3 + k] = c0[k] + (c1[k] - c0[k]) * f;
+      }
+      return table;
+    })();
+
+    function clampPan() {
+      const box = frames[0].getBoundingClientRect();
+      const limitX = (zoom() - 1) * box.width / 2, limitY = (zoom() - 1) * box.height / 2;
+      pan.x = Math.max(-limitX, Math.min(limitX, pan.x));
+      pan.y = Math.max(-limitY, Math.min(limitY, pan.y));
+    }
+    function applyTransform() {
+      clampPan();
+      for (const frame of frames) {
+        frame.style.setProperty("--zoom", String(zoom()));
+        frame.style.setProperty("--pan-x", `${pan.x}px`);
+        frame.style.setProperty("--pan-y", `${pan.y}px`);
+        frame.classList.toggle("zoomed", zoom() > 1);
+        frame.classList.toggle("pixelated", zoom() >= 2);
+      }
+      stage.classList.toggle("zoomed-stage", zoom() > 1);
+      $("zoom-reset").textContent = zoom() === 1 ? "Vừa khung" : `${Math.round(zoom() * 100)}%`;
+      $("zoom-out").disabled = zoomIndex === 0;
+      $("zoom-in").disabled = zoomIndex === zoomSteps.length - 1;
+    }
+    function setZoom(index) {
+      const next = Math.max(0, Math.min(zoomSteps.length - 1, index));
+      if (next === zoomIndex) return;
+      const ratio = zoomSteps[next] / zoom();
+      pan = { x: pan.x * ratio, y: pan.y * ratio };
+      zoomIndex = next;
+      if (zoomIndex === 0) pan = { x: 0, y: 0 };
+      applyTransform();
+    }
+
+    async function computeDiff() {
+      const original = $("original-image"), result = $("result-image");
+      const ready = view === "diff" && !original.hidden && !result.hidden && original.getAttribute("src") && result.getAttribute("src");
+      canvas.hidden = !ready;
+      if (!ready) return;
+      const gain = Number($("diff-gain").value) || 8;
+      const key = `${original.src}|${result.src}|${gain}`;
+      if (key === diffKey) return;
+      const job = ++diffJob;
+      try { await Promise.all([original.decode(), result.decode()]); } catch { return; }
+      if (job !== diffJob || view !== "diff") return;
+      const shrink = Math.min(1, MAX_DIFF_SIDE / Math.max(result.naturalWidth, result.naturalHeight));
+      const width = Math.max(1, Math.round(result.naturalWidth * shrink)), height = Math.max(1, Math.round(result.naturalHeight * shrink));
+      canvas.width = width; canvas.height = height;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      context.imageSmoothingEnabled = true; context.imageSmoothingQuality = "high";
+      context.drawImage(original, 0, 0, width, height);
+      const reference = context.getImageData(0, 0, width, height).data;
+      context.clearRect(0, 0, width, height);
+      context.drawImage(result, 0, 0, width, height);
+      const frame = context.getImageData(0, 0, width, height), pixels = frame.data;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const difference = (Math.abs(pixels[i] - reference[i]) + Math.abs(pixels[i + 1] - reference[i + 1]) + Math.abs(pixels[i + 2] - reference[i + 2])) / 3;
+        const level = Math.min(255, Math.round(difference * gain)) * 3;
+        pixels[i] = ramp[level]; pixels[i + 1] = ramp[level + 1]; pixels[i + 2] = ramp[level + 2]; pixels[i + 3] = 255;
+      }
+      context.putImageData(frame, 0, 0);
+      diffKey = key;
+      canvas.setAttribute("aria-label", `Bản đồ khác biệt hiển thị, khuếch đại ×${gain}`);
+    }
+
+    function updateNav() {
+      const select = $("variant-select");
+      $("variant-prev").disabled = select.disabled || select.selectedIndex <= 0;
+      $("variant-next").disabled = select.disabled || select.selectedIndex >= select.options.length - 1;
+    }
+    function refresh() { updateNav(); computeDiff(); }
+    function setView(next) {
+      view = next;
+      stage.dataset.view = next;
+      document.querySelectorAll(".view-switch button").forEach((button) => button.setAttribute("aria-checked", String(button.dataset.view === next)));
+      $("split-range").hidden = next !== "slider";
+      $("diff-tools").hidden = next !== "diff";
+      applyTransform();
+      refresh();
+    }
+    function step(delta) {
+      const select = $("variant-select");
+      const index = select.selectedIndex + delta;
+      if (select.disabled || index < 0 || index >= select.options.length) return;
+      select.selectedIndex = index;
+      select.dispatchEvent(new Event("change"));
+    }
+    function reset() { zoomIndex = 0; pan = { x: 0, y: 0 }; diffKey = null; applyTransform(); refresh(); }
+
+    document.querySelectorAll(".view-switch button").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
+    $("zoom-in").addEventListener("click", () => setZoom(zoomIndex + 1));
+    $("zoom-out").addEventListener("click", () => setZoom(zoomIndex - 1));
+    $("zoom-reset").addEventListener("click", () => setZoom(0));
+    $("split-range").addEventListener("input", (event) => stage.style.setProperty("--split", `${event.target.value}%`));
+    $("diff-gain").addEventListener("change", () => computeDiff());
+    $("variant-prev").addEventListener("click", () => step(-1));
+    $("variant-next").addEventListener("click", () => step(1));
+    for (const frame of frames) {
+      frame.addEventListener("wheel", (event) => {
+        // Zoom with the wheel only where the viewer has its own pane, or on a trackpad pinch.
+        if (!wide.matches && !event.ctrlKey) return;
+        event.preventDefault();
+        setZoom(zoomIndex + (event.deltaY < 0 ? 1 : -1));
+      }, { passive: false });
+      frame.addEventListener("dblclick", () => setZoom(zoomIndex === 0 ? 2 : 0));
+      frame.addEventListener("pointerdown", (event) => {
+        if (zoom() === 1) return;
+        drag = { id: event.pointerId, x: event.clientX - pan.x, y: event.clientY - pan.y, frame };
+        frame.setPointerCapture(event.pointerId);
+        frame.classList.add("panning");
+      });
+      frame.addEventListener("pointermove", (event) => {
+        if (!drag || drag.id !== event.pointerId) return;
+        pan = { x: event.clientX - drag.x, y: event.clientY - drag.y };
+        applyTransform();
+      });
+      const end = (event) => { if (drag?.id === event.pointerId) { drag.frame.classList.remove("panning"); drag = null; } };
+      frame.addEventListener("pointerup", end);
+      frame.addEventListener("pointercancel", end);
+    }
+    document.addEventListener("keydown", (event) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.target.closest?.("input, select, textarea, dialog, [role=button]")) return;
+      if (event.key === "ArrowLeft") step(-1);
+      else if (event.key === "ArrowRight") step(1);
+      else return;
+      event.preventDefault();
+    });
+    window.addEventListener("resize", applyTransform);
+    applyTransform();
+    return { refresh, reset };
+  })();
+
+  // One place for every interpretation rule; panels link into the matching section.
+  const guide = $("guide-dialog");
+  function openGuide(sectionID) {
+    if (!guide.open) guide.showModal();
+    const section = sectionID && $(sectionID);
+    if (section) {
+      section.scrollIntoView({ block: "start", behavior: reducedMotion.matches ? "instant" : "smooth" });
+      section.classList.remove("flash"); void section.offsetWidth; section.classList.add("flash");
+    }
+  }
+  $("guide-open").addEventListener("click", () => openGuide());
+  $("guide-close").addEventListener("click", () => guide.close());
+  guide.addEventListener("click", (event) => { if (event.target === guide) guide.close(); });
+  document.querySelectorAll("[data-guide]").forEach((button) => button.addEventListener("click", () => openGuide(button.dataset.guide)));
 
   form.addEventListener("submit", runExperiment);
   form.addEventListener("input", (event) => { if (event.target.id !== "image-file") updateConfig(); });
