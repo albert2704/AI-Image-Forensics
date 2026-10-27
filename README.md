@@ -90,6 +90,7 @@ Measured outputs live in `output/benchmark/results/{bfree,frequency}/`, with fig
 
 - [Research write-up](docs/RESEARCH_WRITEUP.md) and `output/pdf/AI_Image_Forensics_Research_Report.pdf`.
 - [Measured benchmark results](docs/BENCHMARK_RESULTS.md), [agent-policy results](docs/AGENT_RESULTS.md), [agent design](docs/AGENT_DESIGN.md), and [adaptive UI verification](docs/AGENT_UI_QA.md).
+- [Study 2 protocol](docs/BREAKPOINT_PROTOCOL.md): single-pass resize × JPEG break-point grid in its own `output/breakpoint-study/`; specified, not yet scored.
 - [Experiment protocol](docs/EXPERIMENT_PROTOCOL.md): hypotheses, datasets, controls, splits, metrics and limits.
 - [Model setup](docs/MODEL_SETUP.md): official sources, exact revisions, checkpoint setup and inference contracts.
 - [UI research](docs/UI_RESEARCH.md): inspected Mobbin references and design decisions.
