@@ -66,6 +66,12 @@ modal deploy scripts/modal_endpoint.py
 
 The command prints the endpoint URL. That URL is the value for `BFREE_REMOTE_URL`. The function clones the B-Free source at revision `c6a9f898782fb466b29af01f21960b67415afb0e` into the image. Weights are never part of the image.
 
+## Fingerprint consequence of the remote branch
+
+The adapter file `forensics/detectors.py` is hashed into `preprocess_sha256` (measured in `forensics/benchmark.py`). Merging the remote scoring branch changed that file, so the recorded value moved from `812f98a6` to `3098d443`. The checkpoint `5948ca78` and the revision `c6a9f89` are unchanged. Recomputing the digest with `6751ede:forensics/detectors.py` as the adapter reproduces `812f98a6` exactly (measured), so the drift is the adapter file alone.
+
+The delivered MPS pilot therefore cannot be resumed with the current adapter. The frozen fingerprint refuses it. The pilot is not broken or invalid. Its outputs are committed and complete, and it is reproduced from `f971d51`, the commit that recorded it. Job A is unaffected because it freezes its own protocol on CUDA. A remote score is a CUDA result with its own fingerprint either way.
+
 ## Cost controls
 
 These are configured values, not a billing measurement.

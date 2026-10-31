@@ -158,6 +158,21 @@ The pilot is a frozen study on MPS. This batch is a device replication with its
 own fingerprint, so do not append its rows to the pilot's journal or resume the
 pilot's protocol with it. Compare the derived CSV.
 
+### Fingerprint consequence of the remote branch
+
+`detector_fingerprint` hashes `forensics/detectors.py` into `preprocess_sha256`
+as the adapter term (measured in `forensics/benchmark.py`). Merging the remote
+scoring branch changed that file, so the recorded value moved from `812f98a6` to
+`3098d443`. The checkpoint `5948ca78` and the revision `c6a9f89` are unchanged.
+Recomputing the digest with `6751ede:forensics/detectors.py` as the adapter
+reproduces `812f98a6` exactly (measured), so the drift is the adapter file alone.
+
+The delivered MPS pilot therefore cannot be resumed with the current adapter.
+The frozen fingerprint refuses it. The pilot is not broken or invalid. Its
+outputs are committed and complete, and it is reproduced from `f971d51`, the
+commit that recorded it. Job A is unaffected because it freezes its own protocol
+on CUDA.
+
 ## Limits
 
 - Two containers at most. No cron schedule and no public endpoint.
