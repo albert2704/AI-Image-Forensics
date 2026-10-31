@@ -1,7 +1,7 @@
 # Running inference on Modal
 
-Modal is used here for two jobs that a laptop and the local VPS cannot do. It is
-not the application backend.
+Modal is used here for three jobs that a laptop and the local VPS cannot do. It
+is not the application backend.
 
 **Job A, GPU replication.** Score the 192 test images under the nine frozen
 conditions on a CUDA container, then compare point estimates with the delivered
@@ -12,7 +12,13 @@ teammate on Windows can score a new upload without installing PyTorch or
 weights. Delivers `scripts/modal_endpoint.py`, an optional remote detector, and
 `docs/MODAL_ENDPOINT.md`.
 
-Neither job changes a frozen protocol. A CUDA device changes the detector
+**Job C, regional endpoint.** Serve TruFor localization for one upload so the
+caller needs no PyTorch, no TruFor checkout, and no checkpoint. Delivers
+`scripts/modal_trufor.py`, an optional remote regional runner, and
+`docs/MODAL_TRUFOR.md`. The image fetches and MD5-checks the checkpoint at build
+time.
+
+No job changes a frozen protocol. A CUDA device changes the detector
 fingerprint, so Job A freezes its own protocol and reports a new hash.
 
 ## Shared contract
