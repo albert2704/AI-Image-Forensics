@@ -21,6 +21,10 @@ time.
 No job changes a frozen protocol. A CUDA device changes the detector
 fingerprint, so Job A freezes its own protocol and reports a new hash.
 
+Setting all three up for the first time is [MODAL_SETUP.md](MODAL_SETUP.md). It
+covers the account, the driver environment, the checkpoints, the secrets, the
+deploys and the application settings in order.
+
 ## Shared contract
 
 Pinned image:
