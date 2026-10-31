@@ -97,6 +97,16 @@ These commands resume existing journals; they do not silently refit settings or 
 
 Measured outputs live in `output/benchmark/results/{bfree,frequency}/`, with figures in `output/benchmark/figures/`. The 24-source policy replay and its exact input snapshot live in `output/agent-evaluation/`. Replay measures policy selection and tool-call cost; it is not an end-to-end latency benchmark or an authenticity-accuracy comparison.
 
+### Optional inference on Modal
+
+Three optional jobs run on Modal for hardware a laptop and the local VPS cannot provide. They are not the application backend. Start with [docs/MODAL_SETUP.md](docs/MODAL_SETUP.md), which installs all three in order and lists the two environment variables the application reads.
+
+- [docs/MODAL_BATCH.md](docs/MODAL_BATCH.md) re-scores the 192 test images under the nine frozen conditions on a CUDA container. A CUDA device changes the detector fingerprint, so this is a new and separately labelled study, not a continuation of the delivered MPS pilot.
+- [docs/MODAL_ENDPOINT.md](docs/MODAL_ENDPOINT.md) serves one authenticated B-Free endpoint, so a teammate can score an upload without installing PyTorch or the checkpoint.
+- [docs/MODAL_TRUFOR.md](docs/MODAL_TRUFOR.md) serves the TruFor regional scan the same way. Its checkpoint is fetched and verified when the image is built, so the operator downloads nothing.
+
+Unset, no image leaves the machine. With either endpoint configured, every uploaded image and every transformed variant is sent to Modal for scoring.
+
 ## Research deliverables
 
 - [Research write-up](docs/RESEARCH_WRITEUP.md) and `output/pdf/AI_Image_Forensics_Research_Report.pdf`.
