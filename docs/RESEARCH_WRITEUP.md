@@ -170,13 +170,13 @@ The official B-Free img0002 example was used for integration, separately from th
 
 TruFor was run on the official 256 x 256 tampered2 example. It returned an actual manipulation score of 0.998346 and the maps below. No pixel-accuracy metric was calculated. The same integration also ran TruFor on the B-Free img0002 original, obtaining 0.032239 despite B-Free's 0.988232 AI-generation score. Fully generated content can lack a localized inconsistency; the outputs address different tasks. [2, 4]
 
-![Source](/Users/albert/Work Space/XLA/AI Image Forensics/external/TruFor/test_docker/images/tampered2.png)
+*Source: artifact not in this repository.*
 
-![Anomaly](/Users/albert/Work Space/XLA/AI Image Forensics/output/model-verification/trufor-small/trufor-7736f96eddae4297b706c49dea99f4fe/localization-heatmap.png)
+![Anomaly](../output/model-verification/trufor-small/trufor-7736f96eddae4297b706c49dea99f4fe/localization-heatmap.png)
 
-![Reliability](/Users/albert/Work Space/XLA/AI Image Forensics/output/model-verification/trufor-small/trufor-7736f96eddae4297b706c49dea99f4fe/localization-reliability.png)
+![Reliability](../output/model-verification/trufor-small/trufor-7736f96eddae4297b706c49dea99f4fe/localization-reliability.png)
 
-![Overlay](/Users/albert/Work Space/XLA/AI Image Forensics/output/model-verification/trufor-small/trufor-7736f96eddae4297b706c49dea99f4fe/localization-overlay.png)
+![Overlay](../output/model-verification/trufor-small/trufor-7736f96eddae4297b706c49dea99f4fe/localization-overlay.png)
 
 Figure 3. Official TruFor example: source, manipulation-anomaly map, localization reliability, and overlay. Anomaly uses a fixed blue-to-red 0-1 scale; reliability uses black-to-white. Neither map is AI-pixel attribution.
 

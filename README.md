@@ -2,11 +2,11 @@
 
 A local research prototype for **Evaluating AI-Generated Image Detection Under Repeated Compression and Resizing**.
 
-Inspect an image, compare B-Free responses under compression and resizing, request a TruFor regional scan, or let a bounded local language model choose investigation steps. Export measured evidence and uncertainty. The project includes a frozen 320-image research pilot and a train-only FFT/DCT classifier baseline.
+Inspect an image, compare B-Free responses under compression and resizing, request a TruFor regional scan, or let a bounded local language model choose investigation steps. Export measured evidence and uncertainty. The repository ships the frozen 320-image pilot as a manifest, a protocol and measured results. It does not ship the images or the model weights. A train-only FFT/DCT classifier baseline is included.
 
 ## Start
 
-The models and isolated Python environment are already installed on this Mac. Double-click `start.command`, or run from this project directory:
+The models and isolated Python environment are installed on the original development machine. On any checkout, run `python scripts/doctor.py` first to see which pieces are present. Then double-click `start.command`, or run from this project directory:
 
 ```bash
 bash scripts/start-with-models.sh
@@ -20,8 +20,11 @@ For a new machine, the base transformation workflow can be installed with:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+python scripts/doctor.py
 python -m forensics.server
 ```
+
+`scripts/doctor.py` prints which images, model directories and run artifacts are present, and what each missing piece blocks. The recorded demo serves from `output/model-verification/` and is read-only.
 
 The server binds only to the local machine. Uploaded images and generated outputs stay in `output/runs/`; remove a run directory to delete its saved source and derivatives.
 

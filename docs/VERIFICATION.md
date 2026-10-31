@@ -1,5 +1,7 @@
 # Verification record
 
+Run `python -m unittest discover -s tests -v` for the current suite. The counts below are dated records from the environment that produced each run, not a live count.
+
 ## 18 October 2026 extension
 
 - **77 automated tests passed** in the isolated project environment, including the original checks, frozen benchmark/cache/provenance behavior, frequency features/optimizer, and adaptive-agent/replay controls. Exact command, output and execution timestamp are in `output/verification/extension-tests.json`.
