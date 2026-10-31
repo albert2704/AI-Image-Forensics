@@ -15,7 +15,8 @@ from pathlib import Path
 from typing import NamedTuple
 
 from .pipeline import MAX_BYTES, analyze, write_exports, decode_image
-from .detectors import choose_detector, publish_regional, run_trufor
+from .detectors import choose_detector, run_trufor
+from .regional import publish_regional
 from .agent import investigate, validate_agent_config, save_investigation
 from .planner import LocalPlanner
 
@@ -199,6 +200,8 @@ class Handler(BaseHTTPRequestHandler):
             WORK_LOCK.release()
 
     def start_investigation(self, payload):
+        if payload.get("threshold", .5) != .5:
+            raise ValueError("The adaptive investigation uses a fixed 0.5 threshold. Remove the threshold field or set it to 0.5.")
         config = validate_agent_config(payload)
         raw = payload.get("image_base64", "")
         if not isinstance(raw, str):
@@ -265,7 +268,8 @@ class Handler(BaseHTTPRequestHandler):
                                 os.environ.get("TRUFOR_PYTHON", "python3"),
                                 os.environ.get("TRUFOR_DEVICE", "cpu"))
         except Exception as exc:
-            result = {"status": "error", "message": f"Regional inference failed: {type(exc).__name__}: {exc}",
+            detail = str(exc).replace(str(directory), "the run directory")
+            result = {"status": "error", "message": f"Regional inference failed: {type(exc).__name__}: {detail}",
                       "warnings": ["No valid regional evidence was produced."]}
             report["regional"] = result
             write_exports(report, directory)

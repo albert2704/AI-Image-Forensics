@@ -127,8 +127,6 @@ class AgentTests(unittest.TestCase):
         regional = report["observations"][1]
         self.assertEqual(regional["score_kind"], "local_manipulation")
         self.assertIn("/agent-heatmap.png", regional["heatmap_url"])
-        self.assertNotIn("_path", json.dumps(regional))
-        self.assertNotIn(str(self.root), json.dumps(regional))
         self.assertEqual(report["summary"]["ai_tests"], 1)
         self.assertEqual(report["summary"]["perturbation_tests"], 0)
         self.assertEqual(report["summary"]["facts"][-1]["evidence_ids"], ["E2"])

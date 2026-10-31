@@ -133,6 +133,24 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertIn("0.5", body["error"])
 
+    def test_regional_error_message_has_no_local_paths(self):
+        directory = self.runs / self.run_id
+
+        def failing(source, output, repo, executable, device="cpu"):
+            raise RuntimeError(f"no usable result at {directory}/trufor-abc/inference.log")
+
+        with unittest.mock.patch.object(server, "RUNS", self.runs), \
+             unittest.mock.patch.object(server, "trufor_status", lambda: {"available": True, "reason": ""}), \
+             unittest.mock.patch.object(server, "run_trufor", failing), \
+             unittest.mock.patch.dict(server.os.environ, {"TRUFOR_REPO": "/nonexistent"}):
+            status, body = self.get_json("/api/regional", {"run_id": self.run_id})
+        self.assertEqual(status, 200)
+        self.assertEqual(body["status"], "error")
+        self.assertIn("the run directory", body["message"])
+        self.assertNotIn(str(directory), json.dumps(body))
+        stored = json.loads((directory / "report.json").read_text())
+        self.assertNotIn(str(directory), json.dumps(stored))
+
     def test_trufor_status_matches_runner_resolution(self):
         root = Path(self.temp.name) / "TruFor"
         root.mkdir()
@@ -148,7 +166,7 @@ class ServerTests(unittest.TestCase):
             self.assertTrue(server.trufor_status()["available"])
 
     def test_publish_regional_strips_local_paths(self):
-        from forensics.detectors import publish_regional
+        from forensics.regional import publish_regional
         directory = self.examples / "publish"
         directory.mkdir()
         result = {"status": "complete", "score": .7, "message": "ok", "warnings": [],
