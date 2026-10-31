@@ -111,26 +111,37 @@ The only measured anchor is the MPS pilot's own journal,
 1,243.2 seconds of detector time, with a median of 0.707 s and a maximum of
 4.108 s per call on MPS.
 
-CUDA time on a T4 was not measured here. There was no Modal token, GPU or
-delivered image set in the checkout where this document was written. The
-following are guesses built from that anchor and must not be read as a
-measurement:
+The smoke run has now been measured on a T4. One source under all nine
+conditions, run on 31 October 2026:
+
+| Item | Measured |
+|---|---|
+| Predictions, failures | 9, 0 |
+| `scoring_seconds` | 17.272 |
+| `elapsed_seconds` | 39.942 |
+| Wall clock, including one container start | 40.7 s |
+| GPU, torch, CUDA | Tesla T4, 2.5.1+cu124, 12.4 |
+| Detector `runtime_seconds` per call | 0.388 to 0.393 |
+
+Nine calls are too few to bound full-batch throughput, because fixed per-call
+overhead dominates at that size. The first four rows below are still estimates.
+The image build row now has a measured companion.
 
 | Step | Estimate | Basis |
 |---|---|---|
 | 1,728 calls, 2 containers | 3 to 10 minutes | 864 calls per container; 0.2 to 0.7 s per call. The upper bound assumes no speedup over the 0.707 s measured MPS median |
-| First image build | 5 to 15 minutes | Torch and CUDA wheels, the B-Free clone at the pinned revision, and the 326 MiB test-image layer. Unmeasured |
-| Container start and model load | about 30 seconds per container | Unmeasured |
+| First image build | 5 to 15 minutes | Torch and CUDA wheels, the B-Free clone at the pinned revision, and the 326 MiB test-image layer. Unmeasured for the batch image |
+| Container start and model load | about 30 seconds per container | Unmeasured separately from the smoke's 40.7 s total |
 | First full run, end to end | 10 to 25 minutes | Sum of the rows above |
 | Later full run with the image cached | 4 to 12 minutes | Same call estimate plus container start |
 
-One measured anchor for the image build. The endpoint image, which shares this
+Two measured companions bound the build. The endpoint image, which shares this
 base with torch and the B-Free clone but omits the 326 MiB dataset layer, built
-and deployed in 105.9 s (measured). The batch image adds that layer. The call
-and run estimates above remain estimates.
+and deployed in 105.9 s. The smoke image, which adds one test image, built and
+ran in 40.7 s once cached.
 
-Measure them again on the first real run; `predictions.meta.json` records the wall
-time and the per-call distribution for that run.
+Measure the full batch on its first real run; `predictions.meta.json` records the
+wall time and the per-call distribution for that run.
 
 ## Comparing with the MPS pilot
 
