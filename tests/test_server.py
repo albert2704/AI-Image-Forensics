@@ -140,6 +140,13 @@ class ServerTests(unittest.TestCase):
         with unittest.mock.patch.dict(server.os.environ, {"TRUFOR_REPO": str(root)}):
             self.assertTrue(server.trufor_status()["available"])
 
+    def test_trufor_status_expands_home(self):
+        home = Path(self.temp.name) / "home"
+        (home / "TruFor" / "TruFor_train_test").mkdir(parents=True)
+        (home / "TruFor" / "TruFor_train_test" / "test.py").write_text("")
+        with unittest.mock.patch.dict(server.os.environ, {"TRUFOR_REPO": "~/TruFor", "HOME": str(home)}):
+            self.assertTrue(server.trufor_status()["available"])
+
     def test_publish_regional_strips_local_paths(self):
         from forensics.detectors import publish_regional
         directory = self.examples / "publish"

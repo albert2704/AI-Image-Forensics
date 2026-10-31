@@ -71,7 +71,7 @@ def load_example():
 
 def trufor_status():
     repo = os.environ.get("TRUFOR_REPO", "")
-    root = Path(repo) if repo else None
+    root = Path(repo).expanduser() if repo else None
     configured = bool(root and ((root / "TruFor_train_test" / "test.py").is_file() or (root / "test.py").is_file()))
     return {"available": configured, "reason": "Configured; model dependencies and weights are checked when scanning." if configured else "Set TRUFOR_REPO and install its pretrained model to enable regional evidence."}
 
