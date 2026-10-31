@@ -38,7 +38,6 @@ printf '\nEnvironment ready. Current state:\n\n'
 cat <<'NEXT'
 
 Next:
-  .venv/bin/python -m forensics.server        # http://127.0.0.1:8765
-  bash scripts/start-with-models.sh           # when external/ models are installed
+  bash scripts/run.sh                         # http://127.0.0.1:8765, loads external/ models when present
   .venv/bin/python -m unittest discover -s tests
 NEXT

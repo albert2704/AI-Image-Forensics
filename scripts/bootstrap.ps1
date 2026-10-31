@@ -37,8 +37,7 @@ Write-Host "`nEnvironment ready. Current state:`n"
 Write-Host @"
 
 Next:
-  .\.venv\Scripts\python.exe -m forensics.server      # http://127.0.0.1:8765
-  .\run.bat                                          # same, with UTF-8 enabled
+  .\run.bat                                          # http://127.0.0.1:8765, loads external\ models when present
   .\scripts\model-env.ps1                            # dot-source the model paths first
   .\.venv\Scripts\python.exe -m unittest discover -s tests
 "@
