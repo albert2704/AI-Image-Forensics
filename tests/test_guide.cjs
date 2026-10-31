@@ -78,6 +78,15 @@ test("baseline-only completion never claims robustness", () => {
   }
 });
 
+test("a failed experiment shell without variants reports insufficient evidence", () => {
+  const result = build({ report: { run_id: "failed-3", variants: [], config: { threshold: .5 } }, adaptive: false, hasImage: true });
+  assert.equal(result.steps.length, 1);
+  assert.equal(result.initialStepId, "finding");
+  assert.match(result.finding.title, /Chưa đủ phép đo/);
+  assert.equal(result.finding.flips, null);
+  assert.doesNotMatch(result.origin, /Đã lưu/);
+});
+
 test("failed baseline prevents derivative-only comparison", () => {
   const result = finding(investigation([original(null), resized(.2)]));
   assert.match(result.title, /Chưa đủ phép đo/);

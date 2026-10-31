@@ -44,3 +44,13 @@ The browser accepted a 390-pixel viewport setting but continued to render its de
 The available Codex reviews ran inside the existing environment. Automatic approval rejected separate DeepSeek and Grok CLI reviews because they would send private source code to those external services without authorization. No code was sent through those rejected actions. Cross-model review remains pending; these checks do not establish merge readiness.
 
 Detector algorithms, weights, study protocols, and recorded benchmark results were unchanged. These checks establish interface behavior, not detector accuracy.
+
+## Review follow-up
+
+Three behavioural findings from the DeepSeek review were fixed after the checks above:
+
+- **Live completion keeps its place.** `state.guide.running` records whether a run was streaming, and a completed run now opens on the finding instead of rewinding to the experiment overview. Opening a saved result or the committed example still starts at the overview, because those reports carry no running status. This was verified by reading the transition and by the guide unit tests; no browser session was rerun for it.
+- **A failed experiment is no longer stored as a report.** `state.failed` replaces the fabricated empty report, so a failure keeps the settings pane open, leaves the technical pane hidden and keeps the regional button disabled instead of pointing it at a run id that does not exist.
+- **Landmarks restored.** Both disclosures keep `role="region"` and their previous accessible names, so screen-reader landmark navigation still finds the source settings and the measured results.
+
+Automated state at this follow-up: 118 Python tests, 19 guide tests, the UI rules check, and both JavaScript syntax checks pass. The transition behaviour above still needs a browser check on a machine with detector weights before merge.

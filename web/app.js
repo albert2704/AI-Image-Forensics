@@ -3,7 +3,7 @@
 (() => {
   const rules = globalThis.forensicsRules;
   const $ = (id) => document.getElementById(id);
-  const state = { file: null, base64: null, objectURL: null, report: null, selected: null, busy: false, busyKind: null, regionalBusy: false, status: null, generation: 0, investigation: null, activeJob: null, cancelRequested: false, monitoring: false, agentSelected: null, ledgerKey: null, guide: { sourceKey: null, selectedId: null, follow: true, disconnected: false }, savedRuns: new Set() };
+  const state = { file: null, base64: null, objectURL: null, report: null, failed: null, selected: null, busy: false, busyKind: null, regionalBusy: false, status: null, generation: 0, investigation: null, activeJob: null, cancelRequested: false, monitoring: false, agentSelected: null, ledgerKey: null, guide: { sourceKey: null, selectedId: null, follow: true, running: false, disconnected: false }, savedRuns: new Set() };
   const MAX_BYTES = 20 * 1024 * 1024;
   const SVG_NS = "http://www.w3.org/2000/svg";
   const form = $("experiment-form");
@@ -172,17 +172,25 @@
   function renderGuide() {
     const adaptive = adaptiveMode();
     const report = adaptive ? state.investigation : state.report;
-    const model = ForensicsGuide.build({ report, adaptive, hasImage: !!state.base64, busy: state.busy, busyKind: state.busyKind, saved: !!report && state.savedRuns.has(report.run_id), availability: state.status, disconnected: state.guide.disconnected, cancelRequested: state.cancelRequested });
+    const guideReport = report || (adaptive ? null : state.failed);
+    const model = ForensicsGuide.build({ report: guideReport, adaptive, hasImage: !!state.base64, busy: state.busy, busyKind: state.busyKind, saved: !!report && state.savedRuns.has(report.run_id), availability: state.status, disconnected: state.guide.disconnected, cancelRequested: state.cancelRequested });
     const navigation = state.guide;
     if (navigation.sourceKey !== model.sourceKey) {
       $("source-controls").open = !report;
       navigation.sourceKey = model.sourceKey;
       navigation.selectedId = null;
       navigation.follow = true;
+      navigation.running = false;
     }
     document.body.classList.toggle("has-guide-result", !!report);
+    const status = typeof report?.status === "string" ? report.status : null;
+    const finishedLive = navigation.running && status !== null && status !== "running";
+    navigation.running = status === "running";
     const following = model.steps.find((item) => item.id === model.initialStepId) || model.steps[0];
-    if (navigation.follow || !model.steps.some((item) => item.id === navigation.selectedId)) navigation.selectedId = following.id;
+    if (finishedLive && model.finding) {
+      navigation.selectedId = model.finding.id;
+      navigation.follow = false;
+    } else if (navigation.follow || !model.steps.some((item) => item.id === navigation.selectedId)) navigation.selectedId = following.id;
     const index = model.steps.findIndex((item) => item.id === navigation.selectedId);
     const current = model.steps[index];
     const signature = model.steps.map((item) => `${item.id}:${item.kind}:${item.title}`).join("|");
@@ -424,10 +432,11 @@
     if (!preserveRecords) {
       setInvestigationURL(null);
       state.report = null;
+      state.failed = null;
       state.investigation = null;
       state.agentSelected = null;
       state.ledgerKey = null;
-      state.guide = { sourceKey: null, selectedId: null, follow: true, disconnected: false };
+      state.guide = { sourceKey: null, selectedId: null, follow: true, running: false, disconnected: false };
       $("agent-state").textContent = "SẴN SÀNG";
       $("agent-current-step").textContent = "Chọn ảnh, đặt giới hạn lượt gọi rồi bắt đầu phân tích.";
       $("agent-conclusion").hidden = true;
@@ -894,8 +903,9 @@
   async function startInvestigation() {
     if (!state.base64 || state.busy) return;
     const generation = state.generation;
-    state.guide = { sourceKey: null, selectedId: null, follow: true, disconnected: false };
+    state.guide = { sourceKey: null, selectedId: null, follow: true, running: false, disconnected: false };
     state.investigation = null; state.agentSelected = null; state.ledgerKey = null; state.cancelRequested = false;
+    state.failed = null;
     clearResults(true);
     setBusy(true, "investigation"); showError("");
     renderInvestigation({ status: "running", current_step: "Đang gửi ảnh tới máy chủ trên máy này", config: { budget: Number($("agent-budget").value) }, observations: [], decisions: [] });
@@ -1002,7 +1012,7 @@
       const report = await request("/api/analyze", payload);
       renderReport(report);
     } catch (error) {
-      state.report = { run_id: `failed-${state.generation}`, variants: [], config: payload, detector: { status: "error" } };
+      state.failed = { run_id: `failed-${state.generation}`, variants: [], config: payload };
       showError(error.message || "Thí nghiệm gặp lỗi. Hãy kiểm tra máy chủ trên máy rồi thử lại.");
       announce("Không thể hoàn tất thí nghiệm.");
     } finally { setBusy(false); }

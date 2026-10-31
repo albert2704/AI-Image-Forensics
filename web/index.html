@@ -35,7 +35,7 @@
   <section class="page-intro" aria-labelledby="page-question"><p class="eyebrow">HIỂU MỘT THÍ NGHIỆM PHÁT HIỆN ẢNH AI</p><h1 id="page-question">Nén hoặc thu nhỏ ảnh, mô hình có đổi ý?</h1><p>Ta cho mô hình phát hiện ảnh AI xem ảnh gốc và các bản sao đã xử lý, rồi so sánh câu trả lời.</p></section>
   <main class="workbench" id="workspace">
     <!-- Left pane: source and experiment settings -->
-    <details class="pane pane-controls" id="source-controls" open><summary>Ảnh nguồn &amp; thiết lập <span>Chọn ảnh hoặc thay đổi cách phân tích</span></summary>
+    <details class="pane pane-controls" id="source-controls" role="region" aria-label="Ảnh nguồn và thiết lập thí nghiệm" open><summary>Ảnh nguồn &amp; thiết lập <span>Chọn ảnh hoặc thay đổi cách phân tích</span></summary>
       <form id="experiment-form">
         <section class="control-section source-section">
           <div class="section-heading"><h2><span class="section-number">01</span> Ảnh nguồn</h2><span class="micro-label" id="file-state">CHƯA CHỌN ẢNH</span></div>
@@ -171,7 +171,7 @@
     </section>
 
     <!-- Right pane: evidence -->
-    <details class="pane pane-evidence" id="research-details"><summary>Xem chi tiết kỹ thuật <span>Phép đo, nhật ký AI &amp; xuất dữ liệu</span></summary><div class="research-content">      <section class="trajectory" id="trajectory-panel" aria-labelledby="trajectory-title">
+    <details class="pane pane-evidence" id="research-details" role="region" aria-label="Kết quả đo"><summary>Xem chi tiết kỹ thuật <span>Phép đo, nhật ký AI &amp; xuất dữ liệu</span></summary><div class="research-content">      <section class="trajectory" id="trajectory-panel" aria-labelledby="trajectory-title">
         <div class="chart-heading"><h3 id="trajectory-title">Điểm AI qua các vòng xử lý</h3><span class="chart-legend"><i aria-hidden="true"></i> B-Free · bấm một điểm để xem ảnh đó</span></div>
         <div class="chart-area" id="score-chart"><div class="chart-empty"><p>Kết quả đo thực tế sẽ hiện ở đây.</p></div></div>
       </section>
