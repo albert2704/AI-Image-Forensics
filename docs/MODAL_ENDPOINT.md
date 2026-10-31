@@ -188,7 +188,7 @@ it says otherwise.
 |---|---|---|
 | B-Free checkpoint SHA-256 | `5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947` | Measured earlier by the local CPU adapter and read from `output/model-verification/bfree-reference-check.json`. Not re-measured here. |
 | New unit tests | 29 passed | `/home/ubuntu/workspace/AI-Image-Forensics/.venv/bin/python -m unittest tests.test_remote tests.test_modal_endpoint` |
-| Full suite | 152 passed | `/home/ubuntu/workspace/AI-Image-Forensics/.venv/bin/python -m unittest discover -s tests` |
+| Full suite | 170 passed, 1 skipped | `/home/ubuntu/workspace/AI-Image-Forensics/.venv/bin/python -m unittest discover -s tests` |
 | Adapter and loopback overhead, 32 by 24 PNG, 95 bytes | 0.97 ms median, 0.82 ms min, 1.11 ms max, 25 calls | Local `ThreadingHTTPServer` stub on 127.0.0.1, `time.perf_counter` around `detect()` |
 | Adapter and loopback overhead, 1024 by 768 PNG, 4022 bytes | 0.99 ms median, 0.91 ms min, 1.17 ms max, 25 calls | Same stub and timing method |
 | Modal deploy end to end, including the image build | 105.9 s | Measured with `modal deploy` |
