@@ -90,7 +90,17 @@ def load_example():
             "image_base64": base64.b64encode(source_path.read_bytes()).decode("ascii")}
 
 
+def trufor_remote_settings():
+    return (os.environ.get("TRUFOR_REMOTE_URL", ""), os.environ.get("TRUFOR_REMOTE_SECRET", ""),
+            os.environ.get("TRUFOR_REMOTE_TIMEOUT", ""))
+
+
 def trufor_status():
+    url, secret, timeout = trufor_remote_settings()
+    if url:
+        from .remote_regional import choose_remote_regional
+        runner = choose_remote_regional(url, secret, timeout)
+        return {"available": runner.available, "reason": runner.reason}
     repo = os.environ.get("TRUFOR_REPO", "")
     root = Path(repo).expanduser() if repo else None
     configured = bool(root and ((root / "TruFor_train_test" / "test.py").is_file() or (root / "test.py").is_file()))
@@ -283,10 +293,18 @@ class Handler(BaseHTTPRequestHandler):
             write_exports(report, directory)
             return self.send_json(result)
         try:
-            result = run_trufor(directory / "original.png", directory,
-                                os.environ["TRUFOR_REPO"],
-                                os.environ.get("TRUFOR_PYTHON", "python3"),
-                                os.environ.get("TRUFOR_DEVICE", "cpu"))
+            url, secret, timeout = trufor_remote_settings()
+            if url:
+                from .remote_regional import choose_remote_regional
+                runner = choose_remote_regional(url, secret, timeout)
+                if not runner.available:
+                    raise RuntimeError(runner.reason)
+                result = runner.run(directory / "original.png", directory)
+            else:
+                result = run_trufor(directory / "original.png", directory,
+                                    os.environ["TRUFOR_REPO"],
+                                    os.environ.get("TRUFOR_PYTHON", "python3"),
+                                    os.environ.get("TRUFOR_DEVICE", "cpu"))
         except Exception as exc:
             detail = str(exc).replace(str(directory), "the run directory")
             result = {"status": "error", "message": f"Regional inference failed: {type(exc).__name__}: {detail}",

@@ -3,13 +3,14 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import sys
 import tempfile
 import threading
 import unittest
 import unittest.mock
 import urllib.error
 import urllib.request
-from http.server import ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from PIL import Image
 
@@ -20,6 +21,53 @@ def png_bytes(size=(32, 24), color="white"):
     stream = io.BytesIO()
     Image.new("RGB", size, color).save(stream, format="PNG")
     return stream.getvalue()
+
+
+def regional_payload(image_bytes, size=(32, 24)):
+    payload = {
+        "status": "complete",
+        "message": "TruFor generated a manipulation anomaly map and localization reliability map.",
+        "warnings": ["fixture"],
+        "model": "TruFor (remote Modal)",
+        "model_revision": "ae54475df6f41a491d7615100feb19263dec13f7",
+        "checkpoint_sha256": "a" * 64,
+        "score": .71,
+        "score_kind": "local_manipulation",
+        "input_sha256": hashlib.sha256(image_bytes).hexdigest(),
+        "calibrated_probability": False,
+        "device": "cuda",
+        "runtime_seconds": 1.25,
+        "imgsize": [size[1], size[0]],
+        "heatmap_kind": "local_manipulation_anomaly",
+        "heatmap_range": [0, 1],
+        "heatmap_legend": "fixture",
+        "reliability_legend": "fixture",
+        "reliability_mean": .42,
+    }
+    for name, color in (("heatmap", "red"), ("reliability", "black"), ("overlay", "blue")):
+        payload[f"{name}_base64"] = base64.b64encode(png_bytes(size, color)).decode("ascii")
+    return payload
+
+
+class RegionalStubHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        with Image.open(io.BytesIO(body)) as image:
+            width, height = image.size
+        self.server.seen.append({
+            "headers": {name.lower(): value for name, value in self.headers.items()},
+            "body": body,
+        })
+        self.server.payload = regional_payload(body, (width, height))
+        data = json.dumps(self.server.payload).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def log_message(self, *args):
+        pass
 
 
 def write_run(directory, run_id, image_name="fixture.png"):
@@ -142,7 +190,7 @@ class ServerTests(unittest.TestCase):
         with unittest.mock.patch.object(server, "RUNS", self.runs), \
              unittest.mock.patch.object(server, "trufor_status", lambda: {"available": True, "reason": ""}), \
              unittest.mock.patch.object(server, "run_trufor", failing), \
-             unittest.mock.patch.dict(server.os.environ, {"TRUFOR_REPO": "/nonexistent"}):
+             unittest.mock.patch.dict(server.os.environ, {"TRUFOR_REPO": "/nonexistent", "TRUFOR_REMOTE_URL": ""}):
             status, body = self.get_json("/api/regional", {"run_id": self.run_id})
         self.assertEqual(status, 200)
         self.assertEqual(body["status"], "error")
@@ -179,6 +227,115 @@ class ServerTests(unittest.TestCase):
         self.assertTrue((directory / "regional-overlay.png").is_file())
         self.assertNotIn("_path", json.dumps(record))
         self.assertNotIn(str(directory), json.dumps(record))
+
+    def test_trufor_status_names_the_remote_host(self):
+        with unittest.mock.patch.dict(server.os.environ, {
+            "TRUFOR_REMOTE_URL": "https://trufor.example.modal.run",
+            "TRUFOR_REMOTE_SECRET": "s3cret",
+            "TRUFOR_REMOTE_TIMEOUT": "",
+        }, clear=False):
+            status = server.trufor_status()
+
+        self.assertTrue(status["available"])
+        self.assertIn("trufor.example.modal.run", status["reason"])
+
+    def test_trufor_status_reports_a_misconfigured_remote(self):
+        with unittest.mock.patch.dict(server.os.environ, {
+            "TRUFOR_REMOTE_URL": "https://trufor.example.modal.run",
+            "TRUFOR_REMOTE_SECRET": "",
+        }, clear=False):
+            status = server.trufor_status()
+
+        self.assertFalse(status["available"])
+        self.assertTrue(status["reason"].startswith("TruFor remote scoring is misconfigured:"))
+
+    def test_unset_remote_url_keeps_the_legacy_reason_and_no_import(self):
+        saved = sys.modules.pop("forensics.remote_regional", None)
+        if saved is not None:
+            self.addCleanup(sys.modules.__setitem__, "forensics.remote_regional", saved)
+        with unittest.mock.patch.dict(server.os.environ, {}, clear=True):
+            status = server.trufor_status()
+
+        self.assertEqual(status, {
+            "available": False,
+            "reason": "Set TRUFOR_REPO and install its pretrained model to enable regional evidence.",
+        })
+        self.assertNotIn("forensics.remote_regional", sys.modules)
+
+    def test_regional_runs_the_remote_endpoint_and_publishes_pngs(self):
+        stub = ThreadingHTTPServer(("127.0.0.1", 0), RegionalStubHandler)
+        stub.seen = []
+        stub.payload = None
+        threading.Thread(target=stub.serve_forever, daemon=True).start()
+        self.addCleanup(stub.server_close)
+        self.addCleanup(stub.shutdown)
+        directory = self.runs / self.run_id
+        original = (directory / "original.png").read_bytes()
+
+        def forbidden(*args, **kwargs):
+            raise AssertionError("the local TruFor runner must not run")
+
+        with unittest.mock.patch.object(server, "RUNS", self.runs), \
+             unittest.mock.patch.dict(server.os.environ, {
+                 "TRUFOR_REMOTE_URL": f"http://127.0.0.1:{stub.server_port}/regional",
+                 "TRUFOR_REMOTE_SECRET": "s3cret",
+                 "TRUFOR_REMOTE_TIMEOUT": "",
+             }, clear=False), \
+             unittest.mock.patch.object(server, "run_trufor", forbidden):
+            status, body = self.get_json("/api/regional", {"run_id": self.run_id})
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body["status"], "complete")
+        self.assertEqual(body["heatmap_url"], f"/runs/{self.run_id}/regional-heatmap.png")
+        self.assertNotIn(str(directory), json.dumps(body))
+        self.assertNotIn("_path", json.dumps(body))
+        for name in ("heatmap", "reliability", "overlay"):
+            self.assertEqual(
+                (directory / f"regional-{name}.png").read_bytes(),
+                base64.b64decode(stub.payload[f"{name}_base64"]),
+            )
+        self.assertEqual(stub.seen[-1]["headers"].get("x-trufor-secret"), "s3cret")
+        self.assertEqual(stub.seen[-1]["headers"].get("content-type"), "application/octet-stream")
+        self.assertEqual(stub.seen[-1]["body"], original)
+        stored = json.loads((directory / "report.json").read_text())
+        self.assertEqual(stored["regional"]["overlay_url"], f"/runs/{self.run_id}/regional-overlay.png")
+
+    def test_regional_uses_the_local_runner_when_the_remote_url_is_unset(self):
+        directory = self.runs / self.run_id
+        calls = []
+
+        def fake_run(source, output, repo, executable, device="cpu"):
+            calls.append((source, output, repo, executable, device))
+            result = {"status": "complete", "score": .5, "message": "local", "warnings": [],
+                      "input_sha256": "x", "imgsize": [24, 32], "npz_path": "/tmp/result.npz"}
+            for name in ("heatmap", "reliability", "overlay"):
+                path = Path(output) / f"trufor-{name}.png"
+                path.write_bytes(png_bytes())
+                result[f"{name}_path"] = str(path)
+            return result
+
+        with unittest.mock.patch.object(server, "RUNS", self.runs), \
+             unittest.mock.patch.object(server, "trufor_status", lambda: {"available": True, "reason": ""}), \
+             unittest.mock.patch.object(server, "run_trufor", fake_run), \
+             unittest.mock.patch.dict(server.os.environ, {"TRUFOR_REPO": "/nonexistent", "TRUFOR_REMOTE_URL": ""}):
+            status, body = self.get_json("/api/regional", {"run_id": self.run_id})
+
+        self.assertEqual(status, 200)
+        self.assertEqual(calls, [(directory / "original.png", directory, "/nonexistent", "python3", "cpu")])
+        self.assertTrue((directory / "regional-heatmap.png").is_file())
+        self.assertEqual(body["overlay_url"], f"/runs/{self.run_id}/regional-overlay.png")
+
+    def test_regional_reports_a_misconfigured_remote_as_unavailable(self):
+        with unittest.mock.patch.object(server, "RUNS", self.runs), \
+             unittest.mock.patch.dict(server.os.environ, {
+                 "TRUFOR_REMOTE_URL": "https://trufor.example.modal.run",
+                 "TRUFOR_REMOTE_SECRET": "",
+             }, clear=False):
+            status, body = self.get_json("/api/regional", {"run_id": self.run_id})
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body["status"], "unavailable")
+        self.assertTrue(body["message"].startswith("TruFor remote scoring is misconfigured:"))
 
 
 class ServerUnitTests(unittest.TestCase):
