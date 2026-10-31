@@ -50,7 +50,7 @@ installed; image processing and measurements are still real.
 ```bash
 git clone <repo> && cd AI-Image-Forensics
 bash scripts/bootstrap.sh
-.venv/bin/python -m forensics.server      # http://127.0.0.1:8765
+bash scripts/run.sh                       # http://127.0.0.1:8765
 ```
 
 **Windows (PowerShell)**
@@ -60,6 +60,11 @@ git clone <repo>; cd AI-Image-Forensics
 powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
 .\run.bat                                  # http://127.0.0.1:8765
 ```
+
+Both launchers export the model paths when `external/` is present, so installing
+the checkpoints is enough. Starting the server some other way, such as
+`python -m forensics.server`, leaves `BFREE_REPO` unset and every score comes
+back missing.
 
 `run.bat` sets `PYTHONUTF8=1`, which avoids `UnicodeEncodeError` when the
 console code page cannot encode Vietnamese output.
@@ -117,7 +122,31 @@ TruFor follows the same pattern with revision `ae54475d…`; see
 [MODEL_SETUP.md](MODEL_SETUP.md). The optional planner installs with
 `python scripts/install-planner.py` on any host.
 
+## Confirm an upload is scored
+
+Installing the checkpoint is not enough on its own. The server process has to
+see the model paths, which both launchers handle. Verify with the status
+endpoint before trusting a screenshot.
+
+```bash
+curl -s http://127.0.0.1:8765/api/status
+```
+
+The response must contain `"bfree": {"available": true, ...}`. If it reports
+`"available": false`, the reason string names the missing piece.
+
+Then open the dashboard, upload any JPEG, and run an analysis. A working install
+shows a numeric score for the original, a second score for each derivative, and
+a populated "Kết quả đo" panel. The first analysis is slow because the
+checkpoint loads lazily; later analyses reuse the loaded model.
+
+Two failure modes look identical in the browser but differ here. A missing
+checkpoint reports "Set BFREE_REPO …". A missing PyTorch reports "B-Free
+dependencies missing: torch". Fix them from `requirements-models.txt`, not by
+re-copying weights.
+
 ## Device names
+
 
 | Device | B-Free | TruFor | Notes |
 |---|---|---|---|
