@@ -31,7 +31,7 @@ TruFor is a local forgery detector. Its map must be labelled **manipulation anom
 
 From the project directory, run `bash scripts/start-with-models.sh`, then open http://127.0.0.1:8765. This selects the local `.venv`, B-Free and TruFor paths, CPU inference, and four CPU threads. For CLI work, first run `source scripts/model-env.sh` and use `.venv/bin/python`. All model sources and weights remain inside `external/`; no shared runtime was modified.
 
-The verified environment uses Python 3.12, PyTorch 2.5.1, torchvision 0.20.1 and timm 1.0.12. Its complete installed package list is saved in `output/model-verification/requirements-installed.txt`. These differ from the upstream historical environment; the reference-image comparison is therefore an essential compatibility check.
+The verified environment uses Python 3.12, PyTorch 2.5.1, torchvision 0.20.1 and timm 1.0.12. Its complete installed package list is saved in `output/model-verification/requirements-installed.txt`. These differ from the upstream historical environment; the reference-image comparison is therefore an essential compatibility check. The same pins are installable from `requirements-models.txt`, and [PLATFORMS.md](PLATFORMS.md) gives the Windows and Linux install paths, device names and what each platform can reproduce.
 
 ## B-Free installation
 
