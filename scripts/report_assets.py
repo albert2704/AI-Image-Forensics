@@ -27,9 +27,12 @@ def repo_relative(path, root):
         if marker not in parts:
             continue
         index = len(parts) - 1 - parts[::-1].index(marker)
-        salvaged = root.joinpath(*parts[index:])
-        if salvaged.is_file():
-            return salvaged.relative_to(root)
+        try:
+            relative = root.joinpath(*parts[index:]).resolve().relative_to(root)
+        except (ValueError, OSError):
+            continue
+        if (root / relative).is_file():
+            return relative
     return None
 
 

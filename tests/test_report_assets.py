@@ -30,6 +30,25 @@ class ReportAssetsTests(unittest.TestCase):
         self.assertIsNone(report_assets.repo_relative(self.root / "output" / "figures" / "missing.png", self.root))
         self.assertIsNone(report_assets.repo_relative("/etc/hosts", self.root))
 
+    def test_symlink_target_outside_the_repo_is_dropped(self):
+        outside = Path(self.temp.name).parent / "outside-secret.png"
+        outside.write_bytes(b"x")
+        self.addCleanup(outside.unlink)
+        (self.root / "output" / "alias.png").symlink_to(outside)
+
+        self.assertIsNone(report_assets.repo_relative(self.root / "output" / "alias.png", self.root))
+        line = report_assets.markdown_image("Source", self.root / "output" / "alias.png", self.root)
+        self.assertIn("not in this repository", line)
+
+    def test_traversal_tail_is_dropped(self):
+        outside = Path(self.temp.name).parent / "outside-secret.png"
+        outside.write_bytes(b"x")
+        self.addCleanup(outside.unlink)
+        for path in (f"{self.root}/output/../../outside-secret.png",
+                     "/Users/albert/Work Space/XLA/AI Image Forensics/output/../../outside-secret.png"):
+            with self.subTest(path=path):
+                self.assertIsNone(report_assets.repo_relative(path, self.root))
+
     def test_markdown_never_emits_an_absolute_path(self):
         path = "/Users/albert/Work Space/XLA/AI Image Forensics/output/figures/plot.png"
         line = report_assets.markdown_image("Measured figure", path, self.root)

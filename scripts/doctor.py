@@ -21,6 +21,14 @@ def version(name):
         return None
 
 
+def read_json(path):
+    """Return parsed JSON, or None when the file is missing, unreadable or malformed."""
+    try:
+        return json.loads(Path(path).read_text())
+    except (OSError, ValueError):
+        return None
+
+
 def find_run(root, run_id):
     for base in (root / "output" / "runs", root / "output" / "model-verification"):
         if (base / run_id).is_dir():
@@ -36,11 +44,11 @@ def collect(root=ROOT):
         rows.append({"name": name, "status": status, "detail": detail})
 
     add("python", "ok", platform.python_version())
-    protocol_path = root / "output" / "benchmark" / "protocol.json"
-    if protocol_path.is_file():
-        frozen = json.loads(protocol_path.read_text())["code_fingerprint"].get("python")
-        if frozen and frozen != platform.python_version():
-            rows[0].update(status="warn", detail=f"{platform.python_version()}, protocol froze {frozen}")
+    protocol = read_json(root / "output" / "benchmark" / "protocol.json")
+    fingerprint = protocol.get("code_fingerprint") if isinstance(protocol, dict) else None
+    frozen = fingerprint.get("python") if isinstance(fingerprint, dict) else None
+    if frozen and frozen != platform.python_version():
+        rows[0].update(status="warn", detail=f"{platform.python_version()}, protocol froze {frozen}")
 
     for name in ("numpy", "pillow"):
         found = version(name)
@@ -57,16 +65,22 @@ def collect(root=ROOT):
         add("images", "missing", "no data/benchmark/manifest.csv")
 
     runs = root / "output" / "runs"
-    count = len([entry for entry in runs.iterdir() if entry.is_dir()]) if runs.is_dir() else 0
-    add("your runs", "ok" if count else "missing", f"{count} directories under output/runs")
+    try:
+        count = len([entry for entry in runs.iterdir() if entry.is_dir()]) if runs.is_dir() else 0
+        add("your runs", "ok" if count else "missing", f"{count} directories under output/runs")
+    except OSError as exc:
+        add("your runs", "missing", f"cannot read output/runs: {exc.strerror or exc}")
 
-    pointer = root / "output" / "verified-example.json"
-    if pointer.is_file():
-        run_id = json.loads(pointer.read_text()).get("run_id", "")
-        location = find_run(root, run_id) if isinstance(run_id, str) else None
-        add("demo example", "ok" if location else "missing", str(location.relative_to(root)) if location else f"run {run_id or '?'} not found")
-    else:
+    pointer_path = root / "output" / "verified-example.json"
+    pointer = read_json(pointer_path)
+    run_id = pointer.get("run_id") if isinstance(pointer, dict) else None
+    if not pointer_path.is_file():
         add("demo example", "missing", "no output/verified-example.json")
+    elif not isinstance(run_id, str):
+        add("demo example", "missing", "the recorded example pointer is invalid")
+    else:
+        location = find_run(root, run_id)
+        add("demo example", "ok" if location else "missing", str(location.relative_to(root)) if location else f"run {run_id} not found")
 
     bfree = os.environ.get("BFREE_REPO") or str(root / "external" / "B-Free")
     add("B-Free", "ok" if Path(bfree).is_dir() else "missing", bfree)

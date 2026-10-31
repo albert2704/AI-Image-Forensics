@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -42,6 +43,28 @@ class DoctorTests(unittest.TestCase):
         self.assertEqual(status(rows, "images"), "ok")
         self.assertEqual(status(rows, "demo example"), "ok")
         self.assertEqual(status(rows, "your runs"), "missing")
+
+    def test_corrupt_pointer_is_reported_not_raised(self):
+        output = self.root / "output"
+        output.mkdir()
+        pointer = output / "verified-example.json"
+        for payload in ("{", "[]"):
+            pointer.write_text(payload)
+            with self.subTest(payload=payload):
+                rows = doctor.collect(self.root)
+                self.assertEqual(status(rows, "demo example"), "missing")
+
+    @unittest.skipIf(os.geteuid() == 0, "root ignores directory permissions")
+    def test_unreadable_runs_directory_is_reported(self):
+        runs = self.root / "output" / "runs"
+        runs.mkdir(parents=True)
+        os.chmod(runs, 0)
+        self.addCleanup(os.chmod, runs, 0o700)
+
+        rows = doctor.collect(self.root)
+
+        self.assertEqual(status(rows, "your runs"), "missing")
+        self.assertIn("cannot read output/runs", next(row["detail"] for row in rows if row["name"] == "your runs"))
 
     def test_partial_image_set_is_not_ok(self):
         manifest = self.root / "data" / "benchmark" / "manifest.csv"
