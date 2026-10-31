@@ -124,6 +124,11 @@ measurement:
 | First full run, end to end | 10 to 25 minutes | Sum of the rows above |
 | Later full run with the image cached | 4 to 12 minutes | Same call estimate plus container start |
 
+One measured anchor for the image build. The endpoint image, which shares this
+base with torch and the B-Free clone but omits the 326 MiB dataset layer, built
+and deployed in 105.9 s (measured). The batch image adds that layer. The call
+and run estimates above remain estimates.
+
 Measure them again on the first real run; `predictions.meta.json` records the wall
 time and the per-call distribution for that run.
 
