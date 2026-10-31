@@ -349,10 +349,48 @@ def _valid_prediction(prediction):
     return result
 
 
+def _fingerprint_difference(expected, actual):
+    # A bare mismatch hides which term drifted, and the adapter file is one of them.
+    missing = object()
+    hash_like = re.compile(r"[0-9a-f]{32,}")
+
+    def show(value):
+        if value is missing:
+            return "<absent>"
+        if isinstance(value, str) and hash_like.fullmatch(value):
+            return value[:12]
+        return json.dumps(value, sort_keys=True)
+
+    if not isinstance(expected, dict) or not isinstance(actual, dict):
+        expected, actual = {}, {}
+
+    changed = set()
+    differences = []
+    for key in sorted(set(expected) | set(actual)):
+        left, right = expected.get(key, missing), actual.get(key, missing)
+        if key == "versions" and isinstance(left, dict) and isinstance(right, dict):
+            for version in sorted(set(left) | set(right)):
+                frozen, current = left.get(version, missing), right.get(version, missing)
+                if frozen != current:
+                    changed.add(f"versions.{version}")
+                    differences.append(f"versions.{version} expected {show(frozen)} actual {show(current)}")
+            continue
+        if left != right:
+            changed.add(key)
+            differences.append(f"{key} expected {show(left)} actual {show(right)}")
+    message = "B-Free fingerprint differs from the frozen protocol."
+    if differences:
+        message += " Differing fields: " + "; ".join(differences) + "."
+    if changed == {"preprocess_sha256"}:
+        message += " preprocess_sha256 covers the checkpoint config, the upstream B-Free source and the adapter source."
+    return message
+
+
 def _check_detector(protocol, detector_id, fingerprint):
     if detector_id == "bfree":
-        if protocol.get("bfree_fingerprint") != fingerprint:
-            raise ValueError("B-Free fingerprint differs from the frozen protocol.")
+        expected = protocol.get("bfree_fingerprint")
+        if expected != fingerprint:
+            raise ValueError(_fingerprint_difference(expected, fingerprint))
     elif detector_id == "frequency":
         expected_ids = sorted(row["source_id"] for row in protocol["sources"] if row["split"] == "train")
         if fingerprint.get("protocol_hash") != protocol["protocol_hash"] or sorted(fingerprint.get("training_source_ids", [])) != expected_ids:

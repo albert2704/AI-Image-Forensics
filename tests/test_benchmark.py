@@ -13,7 +13,7 @@ from PIL import Image
 
 from forensics import frequency_baseline, pipeline
 from forensics.benchmark import (
-    DEFAULT_CONDITIONS, canonical_image_hash, detector_fingerprint, freeze_protocol,
+    DEFAULT_CONDITIONS, _fingerprint_difference, canonical_image_hash, detector_fingerprint, freeze_protocol,
     grouped_paired_interval, load_protocol, render_condition, run_benchmark,
     summarize_benchmark, train_frequency_baseline,
 )
@@ -194,6 +194,35 @@ class BenchmarkTests(unittest.TestCase):
             run_benchmark(path, changed)
         self.assertEqual(changed.calls, 0)
 
+    def test_preprocess_only_drift_names_the_key_and_both_values(self):
+        path, _ = self.freeze([DEFAULT_CONDITIONS[0]])
+        changed = FixtureDetector()
+        changed.fingerprint = {**changed.fingerprint, "preprocess_sha256": "c" * 64}
+        with self.assertRaises(ValueError) as caught:
+            run_benchmark(path, changed)
+        message = str(caught.exception)
+        self.assertTrue(message.startswith("B-Free fingerprint differs from the frozen protocol"))
+        self.assertIn("preprocess_sha256", message)
+        self.assertIn("b" * 12, message)
+        self.assertIn("c" * 12, message)
+        self.assertNotIn("b" * 13, message)
+        self.assertIn("checkpoint config", message)
+        self.assertIn("adapter source", message)
+        self.assertNotIn("\n", message)
+
+    def test_checkpoint_drift_names_the_key_without_the_preprocess_clause(self):
+        path, _ = self.freeze([DEFAULT_CONDITIONS[0]])
+        changed = FixtureDetector()
+        changed.fingerprint = {**changed.fingerprint, "checkpoint_sha256": "c" * 64}
+        with self.assertRaises(ValueError) as caught:
+            run_benchmark(path, changed)
+        message = str(caught.exception)
+        self.assertIn("checkpoint_sha256", message)
+        self.assertIn("a" * 12, message)
+        self.assertIn("c" * 12, message)
+        self.assertNotIn("preprocess_sha256", message)
+        self.assertNotIn("adapter source", message)
+
     def test_frequency_training_and_test_evaluation_keep_split_separation(self):
         path, protocol = self.freeze([DEFAULT_CONDITIONS[0]])
         with patch.object(frequency_baseline, "fit_model", wraps=frequency_baseline.fit_model) as fit:
@@ -207,6 +236,21 @@ class BenchmarkTests(unittest.TestCase):
         summary = summarize_benchmark(path, "frequency")
         self.assertEqual(summary["splits"]["train"]["counts"]["rows"], 0)
         self.assertEqual(summary["splits"]["test"]["counts"]["rows"], 4)
+
+
+class FingerprintDifferenceTests(unittest.TestCase):
+    def test_nested_versions_and_one_sided_keys_are_named(self):
+        expected = {"model_type": "bfree", "device": "mps",
+                    "versions": {"torch": "2.5.1", "timm": "1.0.12"}}
+        actual = {"model_type": "bfree", "name": "B-Free",
+                  "versions": {"torch": "2.6.0", "timm": "1.0.12", "PyYAML": "6.0.3"}}
+        message = _fingerprint_difference(expected, actual)
+        self.assertIn("versions.torch expected \"2.5.1\" actual \"2.6.0\"", message)
+        self.assertIn("versions.PyYAML", message)
+        self.assertIn("device", message)
+        self.assertIn("name", message)
+        self.assertNotIn("versions.timm", message)
+        self.assertNotIn("\n", message)
 
 
 class GroupBootstrapTests(unittest.TestCase):
