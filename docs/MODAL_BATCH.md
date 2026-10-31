@@ -19,11 +19,12 @@ test rows and verifies each image's SHA-256 against the manifest. A missing imag
 or a changed checksum stops the run before any container starts.
 
 Weights live in a Modal Volume, never in the image. Create it once and upload the
-delivered checkpoint directory:
+checkpoint directory that [MODEL_SETUP.md](MODEL_SETUP.md) unpacks under
+`external/B-Free/code/weights`:
 
 ```bash
 modal volume create ai-forensics-models
-modal volume put ai-forensics-models external/BFREE_dino2reg4 /BFREE_dino2reg4
+modal volume put ai-forensics-models external/B-Free/code/weights/BFREE_dino2reg4 /BFREE_dino2reg4
 ```
 
 The mounted layout must be `/models/BFREE_dino2reg4/config.yaml` plus the file
