@@ -193,6 +193,11 @@ def score_task(task, detector, data_root=DATA_ROOT):
     return prediction_row(task, prediction), prediction
 
 
+def _plain(value):
+    """Collapse str subclasses such as TorchVersion, which pickle by reference."""
+    return str(value) if isinstance(value, str) else value
+
+
 def probe_detector(detector):
     """Load the volume checkpoint with one real GPU inference and report its identity."""
     import torch
@@ -201,10 +206,12 @@ def probe_detector(detector):
         path = Path(temporary) / "probe.png"
         Image.new("RGB", (64, 64), (127, 127, 127)).save(path)
         prediction = detector.detect(path)
-    return {"model": prediction.get("model"), "model_revision": prediction.get("model_revision"),
-            "checkpoint_sha256": prediction.get("checkpoint_sha256"), "device": prediction.get("device"),
-            "torch": torch.__version__, "cuda": torch.version.cuda,
-            "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+    # A TorchVersion result needs torch installed just to unpickle, and the
+    # driver environment deliberately has no torch.
+    return {"model": _plain(prediction.get("model")), "model_revision": _plain(prediction.get("model_revision")),
+            "checkpoint_sha256": _plain(prediction.get("checkpoint_sha256")), "device": _plain(prediction.get("device")),
+            "torch": _plain(torch.__version__), "cuda": _plain(torch.version.cuda),
+            "gpu": _plain(torch.cuda.get_device_name(0)) if torch.cuda.is_available() else None,
             "runtime_seconds": prediction.get("runtime_seconds"),
             "fingerprint": detector_fingerprint(detector)}
 

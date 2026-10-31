@@ -262,5 +262,36 @@ class CheckpointAndIdentityTests(unittest.TestCase):
             "d" * 64, recipes, sources, {**fingerprint, "device": "mps"}))
 
 
+class ProbeSerializationTests(unittest.TestCase):
+    def test_probe_returns_plain_types_so_a_torch_free_driver_can_unpickle(self):
+        import types
+        from unittest.mock import patch
+        from forensics.detectors import BFreeDetector
+
+        class TorchVersion(str):
+            """torch.__version__ is this kind of str subclass and pickles by reference."""
+
+        torch = types.ModuleType("torch")
+        torch.__version__ = TorchVersion("2.5.1")
+        torch.version = types.SimpleNamespace(cuda=TorchVersion("12.1"))
+        torch.cuda = types.SimpleNamespace(is_available=lambda: True, get_device_name=lambda _: TorchVersion("Tesla T4"))
+
+        class Detector:
+            def detect(self, path):
+                self.expected = Path(path)
+                return {"model": "B-Free", "model_revision": "c" * 40, "checkpoint_sha256": "d" * 64,
+                        "device": "cuda", "runtime_seconds": 0.5}
+
+        with patch.dict(sys.modules, {"torch": torch}), \
+                patch.object(modal_score, "detector_fingerprint", return_value={"checkpoint_sha256": "d" * 64}):
+            info = modal_score.probe_detector(Detector())
+
+        for key in ("torch", "cuda", "gpu", "model", "device"):
+            with self.subTest(key=key):
+                self.assertIs(type(info[key]), str)
+        self.assertEqual(info["torch"], "2.5.1")
+        self.assertEqual(info["gpu"], "Tesla T4")
+
+
 if __name__ == "__main__":
     unittest.main()

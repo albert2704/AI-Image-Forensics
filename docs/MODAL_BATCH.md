@@ -19,11 +19,12 @@ test rows and verifies each image's SHA-256 against the manifest. A missing imag
 or a changed checksum stops the run before any container starts.
 
 Weights live in a Modal Volume, never in the image. Create it once and upload the
-delivered checkpoint directory:
+checkpoint directory that [MODEL_SETUP.md](MODEL_SETUP.md) unpacks under
+`external/B-Free/code/weights`:
 
 ```bash
 modal volume create ai-forensics-models
-modal volume put ai-forensics-models external/BFREE_dino2reg4 /BFREE_dino2reg4
+modal volume put ai-forensics-models external/B-Free/code/weights/BFREE_dino2reg4 /BFREE_dino2reg4
 ```
 
 The mounted layout must be `/models/BFREE_dino2reg4/config.yaml` plus the file
@@ -110,21 +111,37 @@ The only measured anchor is the MPS pilot's own journal,
 1,243.2 seconds of detector time, with a median of 0.707 s and a maximum of
 4.108 s per call on MPS.
 
-CUDA time on a T4 was not measured here. There was no Modal token, GPU or
-delivered image set in the checkout where this document was written. The
-following are guesses built from that anchor and must not be read as a
-measurement:
+The smoke run has now been measured on a T4. One source under all nine
+conditions, run on 31 October 2026:
+
+| Item | Measured |
+|---|---|
+| Predictions, failures | 9, 0 |
+| `scoring_seconds` | 17.272 |
+| `elapsed_seconds` | 39.942 |
+| Wall clock, including one container start | 40.7 s |
+| GPU, torch, CUDA | Tesla T4, 2.5.1+cu124, 12.4 |
+| Detector `runtime_seconds` per call | 0.388 to 0.393 |
+
+Nine calls are too few to bound full-batch throughput, because fixed per-call
+overhead dominates at that size. The first four rows below are still estimates.
+The image build row now has a measured companion.
 
 | Step | Estimate | Basis |
 |---|---|---|
 | 1,728 calls, 2 containers | 3 to 10 minutes | 864 calls per container; 0.2 to 0.7 s per call. The upper bound assumes no speedup over the 0.707 s measured MPS median |
-| First image build | 5 to 15 minutes | Torch and CUDA wheels, the B-Free clone at the pinned revision, and the 326 MiB test-image layer. Unmeasured |
-| Container start and model load | about 30 seconds per container | Unmeasured |
+| First image build | 5 to 15 minutes | Torch and CUDA wheels, the B-Free clone at the pinned revision, and the 326 MiB test-image layer. Unmeasured for the batch image |
+| Container start and model load | about 30 seconds per container | Unmeasured separately from the smoke's 40.7 s total |
 | First full run, end to end | 10 to 25 minutes | Sum of the rows above |
 | Later full run with the image cached | 4 to 12 minutes | Same call estimate plus container start |
 
-Measure them again on the first real run; `predictions.meta.json` records the wall
-time and the per-call distribution for that run.
+Two measured companions bound the build. The endpoint image, which shares this
+base with torch and the B-Free clone but omits the 326 MiB dataset layer, built
+and deployed in 105.9 s. The smoke image, which adds one test image, built and
+ran in 40.7 s once cached.
+
+Measure the full batch on its first real run; `predictions.meta.json` records the
+wall time and the per-call distribution for that run.
 
 ## Comparing with the MPS pilot
 
@@ -156,6 +173,21 @@ difference, and should be investigated before any scientific claim.
 The pilot is a frozen study on MPS. This batch is a device replication with its
 own fingerprint, so do not append its rows to the pilot's journal or resume the
 pilot's protocol with it. Compare the derived CSV.
+
+### Fingerprint consequence of the remote branch
+
+`detector_fingerprint` hashes `forensics/detectors.py` into `preprocess_sha256`
+as the adapter term (measured in `forensics/benchmark.py`). Merging the remote
+scoring branch changed that file, so the recorded value moved from `812f98a6` to
+`3098d443`. The checkpoint `5948ca78` and the revision `c6a9f89` are unchanged.
+Recomputing the digest with `6751ede:forensics/detectors.py` as the adapter
+reproduces `812f98a6` exactly (measured), so the drift is the adapter file alone.
+
+The delivered MPS pilot therefore cannot be resumed with the current adapter.
+The frozen fingerprint refuses it. The pilot is not broken or invalid. Its
+outputs are committed and complete, and it is reproduced from `f971d51`, the
+commit that recorded it. Job A is unaffected because it freezes its own protocol
+on CUDA.
 
 ## Limits
 

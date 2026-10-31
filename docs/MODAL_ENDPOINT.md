@@ -66,6 +66,12 @@ modal deploy scripts/modal_endpoint.py
 
 The command prints the endpoint URL. That URL is the value for `BFREE_REMOTE_URL`. The function clones the B-Free source at revision `c6a9f898782fb466b29af01f21960b67415afb0e` into the image. Weights are never part of the image.
 
+## Fingerprint consequence of the remote branch
+
+The adapter file `forensics/detectors.py` is hashed into `preprocess_sha256` (measured in `forensics/benchmark.py`). Merging the remote scoring branch changed that file, so the recorded value moved from `812f98a6` to `3098d443`. The checkpoint `5948ca78` and the revision `c6a9f89` are unchanged. Recomputing the digest with `6751ede:forensics/detectors.py` as the adapter reproduces `812f98a6` exactly (measured), so the drift is the adapter file alone.
+
+The delivered MPS pilot therefore cannot be resumed with the current adapter. The frozen fingerprint refuses it. The pilot is not broken or invalid. Its outputs are committed and complete, and it is reproduced from `f971d51`, the commit that recorded it. Job A is unaffected because it freezes its own protocol on CUDA. A remote score is a CUDA result with its own fingerprint either way.
+
 ## Cost controls
 
 These are configured values, not a billing measurement.
@@ -173,18 +179,32 @@ To turn remote scoring off, unset `BFREE_REMOTE_URL` and restart the app. Unset 
 
 ## Run log
 
-Measured on 31 October 2026 in the implementation worktree.
+Measured on 31 October 2026 against
+`https://albert2704--ai-image-forensics-bfree-score-endpoint.us-east.modal.run`
+on workspace albert2704, Starter plan, gpu T4. Every row below is measured unless
+it says otherwise.
 
 | Item | Result | Method |
 |---|---|---|
 | B-Free checkpoint SHA-256 | `5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947` | Measured earlier by the local CPU adapter and read from `output/model-verification/bfree-reference-check.json`. Not re-measured here. |
 | New unit tests | 29 passed | `/home/ubuntu/workspace/AI-Image-Forensics/.venv/bin/python -m unittest tests.test_remote tests.test_modal_endpoint` |
-| Full suite | 152 passed | `/home/ubuntu/workspace/AI-Image-Forensics/.venv/bin/python -m unittest discover -s tests` |
+| Full suite | 170 passed, 1 skipped | `/home/ubuntu/workspace/AI-Image-Forensics/.venv/bin/python -m unittest discover -s tests` |
 | Adapter and loopback overhead, 32 by 24 PNG, 95 bytes | 0.97 ms median, 0.82 ms min, 1.11 ms max, 25 calls | Local `ThreadingHTTPServer` stub on 127.0.0.1, `time.perf_counter` around `detect()` |
 | Adapter and loopback overhead, 1024 by 768 PNG, 4022 bytes | 0.99 ms median, 0.91 ms min, 1.17 ms max, 25 calls | Same stub and timing method |
-| Modal image build | could not run | The modal package and CLI are not installed here, no Modal credentials are present, and deploys are out of scope for this change |
-| T4 inference over the public endpoint | could not run | No deploy exists and there are no Modal credentials |
-| Public endpoint 401 and 200 responses | could not run | No deploy exists and there are no Modal credentials |
+| Modal deploy end to end, including the image build | 105.9 s | Measured with `modal deploy` |
+| Cold POST, correct secret | HTTP 200, 19.00 s total, detector `runtime_seconds` 9.38 | Measured. `runtime_seconds` includes the model load inside the container |
+| Warm POST, correct secret | HTTP 200, 2.16 s total, detector `runtime_seconds` 0.498 | Measured on the same container |
+| Response body device, revision and checkpoint | `cuda`, `c6a9f898782fb466b29af01f21960b67415afb0e`, `5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947` | Measured in the cold and warm responses |
+| Wrong secret | HTTP 401, `{"error":"Unauthorized."}`, 0.79 s | Measured |
+| Missing secret | HTTP 401 | Measured |
+| Local `/api/status` with `BFREE_REMOTE_URL` set | `bfree.available` true, reason named the Modal host | Measured on the local application |
+| Local `/api/status` without `BFREE_REMOTE_URL` | `bfree.available` false, reason named `BFREE_REPO` | Measured on the local application |
+| End to end upload, `examples/processing-fixture.png`, rounds 1 | Two variants scored on cuda, 0.4142940989322834 and 0.24485707081394564, no errors | Measured through the local application |
+| Direct POST of the same file | 0.4142940989322834, identical to the app pipeline result | Measured. The app pipeline leaves the bytes reaching the detector unchanged |
 | Windows cmd.exe and PowerShell setup | could not run | No Windows host is available in this environment |
+
+A GET to the endpoint returns HTTP 405. The body is FastAPI's default
+`{"detail":"Method Not Allowed"}`, which is what the deployed app returns
+(measured).
 
 The loopback figures bound the local cost of the remote branch. They measure the adapter, JSON validation, and loopback HTTP. They say nothing about network latency or T4 inference time.
