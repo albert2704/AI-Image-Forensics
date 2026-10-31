@@ -27,7 +27,7 @@ except ModuleNotFoundError:
     modal = None
 
 from forensics.detectors import TRUFOR_REVIEWED_REVISION, DetectorUnavailableError, _revision
-from forensics.pipeline import MAX_BYTES, decode_image
+from forensics.pipeline import MAX_BYTES, decode_image, encode
 from forensics.remote_regional import (
     ARTIFACT_NAMES_BY_KEY,
     MODEL_NAME,
@@ -43,6 +43,9 @@ APP_NAME = "ai-image-forensics-trufor"
 TRUFOR_REPO = Path("/opt/TruFor")
 WEIGHTS_URL = "https://www.grip.unina.it/download/prog/TruFor/TruFor_weights.zip"
 WEIGHTS_ZIP_MD5 = "7bee48f3476c75616c3c5721ab256ff8"
+# The tar inside that zip. Pinning it means a rebuilt image cannot silently
+# swap the checkpoint even if the download host changes.
+CHECKPOINT_SHA256 = "ac1d90e329a72e0d66e8665e123a19e94bfae3209c3ef8a4f9ca3b91578c7844"
 WEIGHTS_ZIP = "/tmp/TruFor_weights.zip"
 CHECKPOINT = Path("TruFor_train_test") / "pretrained_models" / "trufor.pth.tar"
 
@@ -116,17 +119,21 @@ async def handle_regional_request(
     if not data:
         return finish(400, {"error": "The request body is empty."})
     try:
-        decode_image(bytes(data))
+        image, _ = decode_image(bytes(data))
     except ValueError as exc:
         return finish(400, {"error": str(exc)})
+    received_sha256 = hashlib.sha256(bytes(data)).hexdigest()
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
         source = root / "input.png"
-        source.write_bytes(bytes(data))
+        # Same normalization the local path feeds TruFor, so a JPEG upload and a
+        # PNG upload of the same pixels reach the detector identically.
+        source.write_bytes(encode(image, "PNG"))
         try:
             body = _response_body(run_runner(source, root))
         except Exception as exc:
             return finish(500, {"error": "Regional inference failed."}, type(exc).__name__)
+        body["input_sha256"] = received_sha256
     device = body["device"]
     return finish(200, body)
 
@@ -149,7 +156,10 @@ def verify_layout(repo: Path) -> str:
     revision = _revision(root)
     if revision != TRUFOR_REVIEWED_REVISION:
         raise DetectorUnavailableError(f"TruFor checkout is at {revision}, not the reviewed revision.")
-    return sha256_file(checkpoint)
+    digest = sha256_file(checkpoint)
+    if digest != CHECKPOINT_SHA256:
+        raise DetectorUnavailableError(f"TruFor checkpoint is {digest}, not the pinned {CHECKPOINT_SHA256}.")
+    return digest
 
 
 def build_run_runner() -> Callable[[Path, Path], dict]:

@@ -258,12 +258,37 @@ print("ok")
         self.assertEqual(reply.status, 500)
         self.assertEqual(reply.body, {"error": "Regional inference failed."})
 
+    def test_a_jpeg_upload_reaches_the_runner_as_normalized_png(self):
+        runner = FakeRunner()
+        buffer = io.BytesIO()
+        Image.new("RGB", (40, 30), (12, 90, 200)).save(buffer, format="JPEG", quality=90)
+        uploaded = buffer.getvalue()
+
+        reply = self.request(chunks=Chunks(uploaded), run_runner=runner)
+
+        self.assertEqual(reply.status, 200)
+        seen = runner.seen[0]
+        self.assertTrue(seen.startswith(b"\x89PNG\r\n\x1a\n"))
+        with Image.open(io.BytesIO(seen)) as image:
+            self.assertEqual(image.size, (40, 30))
+        self.assertEqual(reply.body["input_sha256"], hashlib.sha256(uploaded).hexdigest())
+
     def test_verify_layout_accepts_the_reviewed_checkout(self):
         repo = self.write_repo()
-        with unittest.mock.patch.object(endpoint, "_revision", lambda root: REVISION):
-            digest = endpoint.verify_layout(repo)
+        digest = hashlib.sha256((repo / endpoint.CHECKPOINT).read_bytes()).hexdigest()
+        with unittest.mock.patch.object(endpoint, "_revision", lambda root: REVISION), \
+                unittest.mock.patch.object(endpoint, "CHECKPOINT_SHA256", digest):
+            matched = endpoint.verify_layout(repo)
 
-        self.assertEqual(digest, hashlib.sha256((repo / endpoint.CHECKPOINT).read_bytes()).hexdigest())
+        self.assertEqual(matched, digest)
+
+    def test_verify_layout_rejects_a_checkpoint_that_is_not_pinned(self):
+        repo = self.write_repo()
+        with unittest.mock.patch.object(endpoint, "_revision", lambda root: REVISION), \
+                self.assertRaises(endpoint.DetectorUnavailableError) as caught:
+            endpoint.verify_layout(repo)
+
+        self.assertIn("not the pinned", str(caught.exception))
 
     def test_verify_layout_rejects_missing_files_or_a_foreign_revision(self):
         cases = {"missing entry": self.write_repo(entry=False), "missing checkpoint": self.write_repo(checkpoint=False)}
