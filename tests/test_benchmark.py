@@ -252,6 +252,13 @@ class FingerprintDifferenceTests(unittest.TestCase):
         self.assertNotIn("versions.timm", message)
         self.assertNotIn("\n", message)
 
+    def test_a_missing_frozen_fingerprint_still_names_the_live_fields(self):
+        actual = {"model_type": "bfree", "checkpoint_sha256": "a" * 64, "preprocess_sha256": "b" * 64}
+        message = _fingerprint_difference(None, actual)
+        self.assertIn("checkpoint_sha256", message)
+        self.assertIn("preprocess_sha256", message)
+        self.assertIn("<absent>", message)
+
 
 class GroupBootstrapTests(unittest.TestCase):
     def test_cluster_bootstrap_keeps_related_real_fake_sources_together(self):

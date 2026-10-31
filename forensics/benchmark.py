@@ -361,8 +361,10 @@ def _fingerprint_difference(expected, actual):
             return value[:12]
         return json.dumps(value, sort_keys=True)
 
-    if not isinstance(expected, dict) or not isinstance(actual, dict):
-        expected, actual = {}, {}
+    if not isinstance(expected, dict):
+        expected = {}
+    if not isinstance(actual, dict):
+        actual = {}
 
     changed = set()
     differences = []
