@@ -142,7 +142,9 @@ class TokenGateTests(unittest.TestCase):
                 capture_output=True, text=True, env=environment, cwd=directory, timeout=120,
             )
         self.assertEqual(result.returncode, 1)
+        self.assertNotIn("ModuleNotFoundError", result.stderr)
         self.assertNotIn("global scope", result.stderr)
+        self.assertIn("AuthError", result.stderr)
 
 
 class SourceAndTaskTests(unittest.TestCase):
@@ -240,6 +242,24 @@ class ScoreTaskTests(unittest.TestCase):
             task["sha256"] = "0" * 64
             with self.assertRaises(ValueError):
                 modal_score.score_task(task, self.FakeDetector(), data_root=temporary)
+
+
+class CheckpointAndIdentityTests(unittest.TestCase):
+    def test_only_the_pilot_checkpoint_is_accepted(self):
+        self.assertIsNone(modal_score.require_pilot_checkpoint(modal_score.PILOT_CHECKPOINT_SHA256))
+        with self.assertRaises(modal_score.CheckpointMismatchError) as caught:
+            modal_score.require_pilot_checkpoint("0" * 64)
+        self.assertIn("0" * 64, str(caught.exception))
+        self.assertIn(modal_score.PILOT_CHECKPOINT_SHA256, str(caught.exception))
+
+    def test_run_identity_is_stable_and_device_specific(self):
+        recipes = modal_score.condition_recipes()
+        sources = [{"source_id": "src:a", "sha256": "a" * 64}]
+        fingerprint = {"checkpoint_sha256": "b" * 64, "preprocess_sha256": "c" * 64, "device": "cuda"}
+        baseline = modal_score.run_identity_sha256("d" * 64, recipes, sources, fingerprint)
+        self.assertEqual(baseline, modal_score.run_identity_sha256("d" * 64, recipes, sources, dict(fingerprint)))
+        self.assertNotEqual(baseline, modal_score.run_identity_sha256(
+            "d" * 64, recipes, sources, {**fingerprint, "device": "mps"}))
 
 
 if __name__ == "__main__":

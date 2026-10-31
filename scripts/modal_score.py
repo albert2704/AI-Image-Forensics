@@ -27,7 +27,7 @@ if str(ROOT) not in sys.path:
 from PIL import Image
 
 from forensics import pipeline
-from forensics.benchmark import DEFAULT_CONDITIONS, render_condition
+from forensics.benchmark import DEFAULT_CONDITIONS, detector_fingerprint, render_condition
 
 APP_NAME = "ai-forensics-modal-batch"
 MODEL_VOLUME = "ai-forensics-models"
@@ -57,6 +57,10 @@ class MissingTokenError(RuntimeError):
     """Modal credentials are not available in this environment."""
 
 
+class CheckpointMismatchError(RuntimeError):
+    """The volume holds a checkpoint the MPS pilot did not score."""
+
+
 def require_modal_token(environ=None):
     """Refuse to start without credentials, before touching Modal or the data."""
     environ = os.environ if environ is None else environ
@@ -65,6 +69,15 @@ def require_modal_token(environ=None):
         raise MissingTokenError(
             "Modal credentials are missing: " + " and ".join(missing) + ". "
             "Run `modal setup` (or `modal token new`), then export both values from ~/.modal.toml or the Modal dashboard."
+        )
+
+
+def require_pilot_checkpoint(checkpoint_sha256):
+    """Refuse to spend GPU time on a checkpoint the pilot did not score."""
+    if checkpoint_sha256 != PILOT_CHECKPOINT_SHA256:
+        raise CheckpointMismatchError(
+            f"Checkpoint {checkpoint_sha256} is not the pilot's {PILOT_CHECKPOINT_SHA256}. "
+            f"Upload the delivered BFREE_dino2reg4 checkpoint to the {MODEL_VOLUME} volume and retry."
         )
 
 
@@ -192,7 +205,8 @@ def probe_detector(detector):
             "checkpoint_sha256": prediction.get("checkpoint_sha256"), "device": prediction.get("device"),
             "torch": torch.__version__, "cuda": torch.version.cuda,
             "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
-            "runtime_seconds": prediction.get("runtime_seconds")}
+            "runtime_seconds": prediction.get("runtime_seconds"),
+            "fingerprint": detector_fingerprint(detector)}
 
 
 def _get_detector():
@@ -201,6 +215,14 @@ def _get_detector():
         from forensics.detectors import BFreeDetector
         _DETECTOR = BFreeDetector(BFREE_DIR, CHECKPOINT_DIR, device="cuda")
     return _DETECTOR
+
+
+def run_identity_sha256(manifest_sha256, recipes, sources, fingerprint):
+    """Device-specific identity of this batch, distinct from a frozen protocol."""
+    payload = {"manifest_sha256": manifest_sha256, "conditions": recipes, "columns": list(COLUMNS),
+               "sources": [[source["source_id"], source["sha256"]] for source in sources],
+               "detector_fingerprint": fingerprint}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
 
 
 def write_predictions(rows, path):
@@ -263,6 +285,7 @@ def main(argv=None, environ=None):
     recipes = condition_recipes()
     manifest = Path(args.manifest).resolve()
     sources = test_sources(manifest)
+    manifest_sha256 = _file_sha256(manifest)
     tasks = build_tasks(sources, recipes, smoke=args.smoke)
     output = Path(args.output).expanduser().resolve()
     keep = {task["path"] for task in tasks}
@@ -295,14 +318,12 @@ def main(argv=None, environ=None):
     with app.run():
         info = probe.remote()
         print(json.dumps({"probe": info}, indent=2, allow_nan=False), flush=True)
+        require_pilot_checkpoint(info.get("checkpoint_sha256"))
+        run_sha256 = run_identity_sha256(manifest_sha256, recipes, sources, info["fingerprint"])
         scores_started = time.perf_counter()
         results = list(score_one.map(tasks, return_exceptions=True))
         scoring_seconds = time.perf_counter() - scores_started
     elapsed_seconds = time.perf_counter() - started
-
-    if info.get("checkpoint_sha256") != PILOT_CHECKPOINT_SHA256:
-        print(f"warning: checkpoint is {info.get('checkpoint_sha256')}, not the pilot's {PILOT_CHECKPOINT_SHA256}; "
-              "point estimates are not like-for-like.", flush=True)
 
     rows, responses, failures = [], [], []
     for task, result in zip(tasks, results):
@@ -319,7 +340,7 @@ def main(argv=None, environ=None):
             print(json.dumps(response, indent=2, allow_nan=False), flush=True)
 
     predictions_path = write_predictions(rows, output)
-    failures_path = _write_jsonl(failures, output.with_suffix(".failures.jsonl")) if failures else None
+    failures_path = _write_jsonl(failures, output.with_suffix(".failures.jsonl"))
     runtimes = [response["runtime_seconds"] for response in responses if response.get("runtime_seconds") is not None]
     meta = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -327,7 +348,8 @@ def main(argv=None, environ=None):
         "model": info.get("model"), "model_revision": info.get("model_revision"),
         "checkpoint_sha256": info.get("checkpoint_sha256"),
         "pilot_checkpoint_sha256": PILOT_CHECKPOINT_SHA256,
-        "manifest_path": str(manifest), "manifest_sha256": _file_sha256(manifest),
+        "detector_fingerprint": info.get("fingerprint"), "run_sha256": run_sha256,
+        "manifest_path": str(manifest), "manifest_sha256": manifest_sha256,
         "columns": list(COLUMNS), "conditions": recipes,
         "sources": len({task["source_id"] for task in tasks}), "requests": len(tasks),
         "predictions": len(rows), "failures": len(failures),
@@ -341,7 +363,7 @@ def main(argv=None, environ=None):
     meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
 
     print(json.dumps({"predictions": str(predictions_path), "rows": len(rows), "sources": meta["sources"],
-                      "failures": len(failures), "failures_path": str(failures_path) if failures_path else None,
+                      "failures": len(failures), "failures_path": str(failures_path),
                       "meta": str(meta_path), "scoring_seconds": round(scoring_seconds, 3),
                       "elapsed_seconds": round(elapsed_seconds, 3)}, indent=2, allow_nan=False), flush=True)
     return 1 if failures else 0
@@ -350,5 +372,5 @@ def main(argv=None, environ=None):
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except MissingTokenError as exc:
+    except (MissingTokenError, CheckpointMismatchError) as exc:
         raise SystemExit(f"modal_score: {exc}")

@@ -28,9 +28,11 @@ modal volume put ai-forensics-models external/BFREE_dino2reg4 /BFREE_dino2reg4
 
 The mounted layout must be `/models/BFREE_dino2reg4/config.yaml` plus the file
 named by `weights_file` in that config. The volume is mounted read-only. The
-runner probes it with one real inference before any fan-out and prints the
+runner probes it with one real inference before any fan-out, prints the
 checkpoint SHA-256, the model revision, the GPU name and the Torch and CUDA
-versions.
+versions, and compares the checkpoint with the pilot's. A different checkpoint
+stops the run before a single study call, so it can never produce a CSV that
+looks comparable.
 
 Modal credentials come from the environment, not from a `modal.Secret`. Without
 them the runner exits before importing Modal:
@@ -86,13 +88,20 @@ Three files next to `--output`:
 | File | Contents |
 |---|---|
 | `predictions.csv` | The frozen columns `source_id,label,generator,group_id,split,condition,score,raw_logit`, sorted by source and condition |
-| `predictions.meta.json` | Device, GPU, Torch and CUDA versions, checkpoint SHA-256, model revision, manifest hash, condition recipes, counts, measured elapsed and scoring seconds, per-call inference distribution |
-| `predictions.failures.jsonl` | One record per failed call, with `source_id`, `condition`, `error_type` and `error`. Written only when a call fails |
+| `predictions.meta.json` | Device, GPU, Torch and CUDA versions, checkpoint SHA-256, detector fingerprint, run identity hash, model revision, manifest hash, condition recipes, counts, measured elapsed and scoring seconds, per-call inference distribution |
+| `predictions.failures.jsonl` | One record per failed call, with `source_id`, `condition`, `error_type` and `error`. Empty when every call succeeds |
 
 A failed call never becomes a zero and never becomes a guessed score. It is
 absent from `predictions.csv`, present in the failures file, and the process
 exits 1. There is no cache and no resume in this runner; a rerun recomputes every
-call and replaces the files.
+call and replaces all three files.
+
+The meta file's `run_sha256` identifies this batch by manifest hash, condition
+recipes, source checksums and the CUDA detector fingerprint. It is not the frozen
+`protocol.json` hash and must never be used to resume the pilot's protocol.
+This runner does not write a new `protocol.json`; it reports the identity inputs
+so the coordinator can fold the CUDA run in without mixing it with the MPS
+study.
 
 ## Expected wall time
 
@@ -129,8 +138,8 @@ Check these before comparing point estimates:
    `failures: 0`. A short CSV describes the available cases, not the intended
    study.
 2. `checkpoint_sha256` matches the pilot's `5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947`.
-   The runner warns when it differs. A different checkpoint makes the comparison
-   invalid, not merely noisy.
+   The runner refuses to score when it differs. A different checkpoint makes the
+   comparison invalid, not merely noisy.
 3. The condition recipes in the meta file match
    [BENCHMARK_PROTOCOL.md](BENCHMARK_PROTOCOL.md). The script refuses any set
    other than the nine frozen names and recipes.
