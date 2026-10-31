@@ -8,6 +8,7 @@ from importlib import metadata
 import os
 from pathlib import Path
 import platform
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,9 +31,15 @@ def read_json(path):
 
 
 def find_run(root, run_id):
+    """Return the run directory for a plain 32-hex id, or None. Never resolves a path."""
+    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{32}", run_id):
+        return None
     for base in (root / "output" / "runs", root / "output" / "model-verification"):
-        if (base / run_id).is_dir():
-            return base / run_id
+        try:
+            if (base / run_id).is_dir():
+                return base / run_id
+        except OSError:
+            continue
     return None
 
 
@@ -55,14 +62,15 @@ def collect(root=ROOT):
         add(name, "ok" if found else "missing", found or "not installed")
 
     manifest = root / "data" / "benchmark" / "manifest.csv"
-    if manifest.is_file():
+    try:
         with manifest.open(newline="", encoding="utf-8") as stream:
             paths = [row["path"] for row in csv.DictReader(stream)]
+    except (OSError, csv.Error, KeyError, ValueError):
+        add("images", "missing", "cannot read data/benchmark/manifest.csv")
+    else:
         present = sum(1 for path in paths if (manifest.parent / path).is_file())
         status = "ok" if present == len(paths) else "missing" if not present else "partial"
         add("images", status, f"{present} of {len(paths)} manifest files under data/benchmark/")
-    else:
-        add("images", "missing", "no data/benchmark/manifest.csv")
 
     runs = root / "output" / "runs"
     try:

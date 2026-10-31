@@ -10,17 +10,28 @@ from __future__ import annotations
 from pathlib import Path
 
 MARKERS = ("output", "docs", "data", "external")
+IGNORED_ROOTS = (Path("external"), Path("output/runs"), Path("data/benchmark/images"),
+                 Path("weights"), Path(".venv"), Path("tmp"))
+
+
+def _ignored(relative):
+    """Mirror the directory entries in .gitignore. A file there is absent from a clone."""
+    return any(relative == root or root in relative.parents for root in IGNORED_ROOTS)
+
+
+def _kept(relative, root):
+    return relative is not None and not _ignored(relative) and (root / relative).is_file()
 
 
 def repo_relative(path, root):
-    """Return the path relative to root, or None when it does not resolve to a repo file."""
+    """Return the path relative to root, or None when it does not resolve to a repository file."""
     root = Path(root).resolve()
     candidate = Path(path)
     try:
         relative = candidate.resolve().relative_to(root)
     except (ValueError, OSError):
         relative = None
-    if relative is not None and (root / relative).is_file():
+    if _kept(relative, root):
         return relative
     parts = candidate.parts
     for marker in MARKERS:
@@ -31,7 +42,7 @@ def repo_relative(path, root):
             relative = root.joinpath(*parts[index:]).resolve().relative_to(root)
         except (ValueError, OSError):
             continue
-        if (root / relative).is_file():
+        if _kept(relative, root):
             return relative
     return None
 

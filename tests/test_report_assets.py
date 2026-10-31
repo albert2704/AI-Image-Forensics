@@ -49,6 +49,22 @@ class ReportAssetsTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIsNone(report_assets.repo_relative(path, self.root))
 
+    def test_gitignored_roots_are_dropped(self):
+        for relative in (Path("external/demo.png"), Path("output/runs/run/demo.png"),
+                         Path("data/benchmark/images/demo.png"), Path("weights/model.bin")):
+            with self.subTest(relative=relative):
+                path = self.root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"x")
+                self.assertIsNone(report_assets.repo_relative(path, self.root))
+
+    def test_ignored_roots_mirror_gitignore(self):
+        gitignore = (ROOT / ".gitignore").read_text()
+        entries = {line.strip().rstrip("/") for line in gitignore.splitlines() if line.strip() and not line.startswith("#")}
+        for root in report_assets.IGNORED_ROOTS:
+            with self.subTest(root=root):
+                self.assertIn(str(root), entries)
+
     def test_markdown_never_emits_an_absolute_path(self):
         path = "/Users/albert/Work Space/XLA/AI Image Forensics/output/figures/plot.png"
         line = report_assets.markdown_image("Measured figure", path, self.root)

@@ -66,6 +66,29 @@ class DoctorTests(unittest.TestCase):
         self.assertEqual(status(rows, "your runs"), "missing")
         self.assertIn("cannot read output/runs", next(row["detail"] for row in rows if row["name"] == "your runs"))
 
+    def test_a_run_id_cannot_escape_the_output_tree(self):
+        output = self.root / "output"
+        output.mkdir()
+        (output / "model-verification").mkdir()
+        pointer = output / "verified-example.json"
+        for run_id in ("../../..", "..", "", "a" * 32):
+            pointer.write_text(json.dumps({"run_id": run_id}))
+            with self.subTest(run_id=run_id):
+                self.assertNotEqual(status(doctor.collect(self.root), "demo example"), "ok")
+
+    @unittest.skipIf(os.geteuid() == 0, "root ignores file permissions")
+    def test_unreadable_manifest_is_reported(self):
+        manifest = self.root / "data" / "benchmark" / "manifest.csv"
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text("source_id,path,label,generator\n")
+        os.chmod(manifest, 0)
+        self.addCleanup(os.chmod, manifest, 0o600)
+
+        rows = doctor.collect(self.root)
+
+        self.assertEqual(status(rows, "images"), "missing")
+        self.assertIn("cannot read", next(row["detail"] for row in rows if row["name"] == "images"))
+
     def test_partial_image_set_is_not_ok(self):
         manifest = self.root / "data" / "benchmark" / "manifest.csv"
         manifest.parent.mkdir(parents=True)

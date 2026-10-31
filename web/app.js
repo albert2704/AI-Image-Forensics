@@ -712,8 +712,7 @@
     if (summary) {
       $("agent-summary-title").textContent = translate(summary.title) || "Kết quả đã ghi nhận";
       $("agent-facts").replaceChildren(...(summary.facts || []).map((fact) => { const paragraph = el("p", translate(fact.text)); paragraph.append(evidenceLinks(fact.evidence_ids)); return paragraph; }));
-      const reasons = { budget_exhausted: "Đã dùng hết số lượt gọi công cụ cho phép.", planner_finished: "AI đã chọn kết thúc phân tích.", cancelled: "Đã dừng theo yêu cầu của bạn.", planner_failed: "Mô hình chọn phép thử gặp lỗi; các kết quả đã có vẫn được giữ lại.", original_detector_failed: "Phép đo ảnh gốc gặp lỗi." };
-      $("agent-stop").textContent = reasons[summary.stop_reason] || `Đã dừng: ${summary.stop_reason || "chưa rõ lý do"}.`;
+      $("agent-stop").textContent = rules.stopReasonText(summary.stop_reason);
       $("agent-warnings").replaceChildren(...(summary.warnings || []).map((warning) => el("li", translate(warning))));
     }
     const error = report.error || report.planner_error;
