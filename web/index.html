@@ -7,6 +7,7 @@
   <meta name="description" content="Không gian nghiên cứu trên máy để đánh giá độ ổn định của mô hình phát hiện ảnh AI qua nhiều lần nén và đổi kích thước.">
   <title>Giám định ảnh / Không gian nghiên cứu</title>
   <link rel="stylesheet" href="/style.css">
+  <script src="/rules.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
@@ -59,7 +60,7 @@
         <section class="control-section agent-section" id="agent-settings" hidden>
           <div class="section-heading"><h2><span class="section-number">03</span> Giới hạn phân tích</h2></div>
           <div class="planner-status"><strong>Qwen chọn phép thử</strong><span class="availability" id="planner-badge">ĐANG KIỂM TRA</span></div><p id="planner-status" class="field-help">Đang kiểm tra mô hình chọn phép thử…</p>
-          <label class="field-label budget-label" for="agent-budget">Số lượt gọi mô hình tối đa</label><select id="agent-budget" aria-describedby="budget-help"><option value="2">2 lượt · kiểm tra nhanh</option><option value="3">3 lượt</option><option value="4" selected>4 lượt · tiêu chuẩn</option><option value="5">5 lượt</option><option value="6">6 lượt · mở rộng</option></select><p class="field-help" id="budget-help">Bao gồm lượt đo ảnh gốc bằng B-Free. Mỗi phép thử là một nhánh riêng, bắt đầu từ cùng ảnh gốc.</p>
+          <label class="field-label budget-label" for="agent-budget">Số lượt gọi công cụ tối đa</label><select id="agent-budget" aria-describedby="budget-help"><option value="2">2 lượt · kiểm tra nhanh</option><option value="3">3 lượt</option><option value="4" selected>4 lượt · tiêu chuẩn</option><option value="5">5 lượt</option><option value="6">6 lượt · mở rộng</option></select><p class="field-help" id="budget-help">Bao gồm lượt đo ảnh gốc bằng B-Free. Mỗi phép thử là một nhánh riêng, bắt đầu từ cùng ảnh gốc.</p>
           <label class="checkbox-field"><input id="allow-regional" type="checkbox" checked><span>Cho phép TruFor kiểm tra từng vùng<small>Có thể mất thêm vài phút.</small></span></label>
         </section>
 
@@ -140,7 +141,7 @@
       <section class="panel agent-overview" id="agent-overview" aria-labelledby="agent-title" hidden>
         <div class="panel-header"><div><div class="eyebrow">PHÂN TÍCH CÓ GIỚI HẠN</div><h2 id="agent-title">Kết quả đo dẫn lối cho phép thử.</h2></div><span class="small-tag" id="agent-state">SẴN SÀNG</span></div>
         <div class="agent-progress"><div><span class="agent-progress-dot" id="agent-progress-dot" aria-hidden="true"></span><p id="agent-current-step" role="status">Chọn ảnh, đặt giới hạn lượt gọi rồi bắt đầu phân tích.</p></div><button type="button" class="secondary-button" id="cancel-investigation" hidden>Dừng sau lượt đang chạy</button><button type="button" class="secondary-button" id="resume-investigation" hidden>Kết nối lại để theo dõi</button></div>
-        <div class="agent-counts"><span><strong id="agent-tool-count">0 / 4</strong> lượt gọi mô hình</span><span><strong id="agent-planner-count">0</strong> lượt gọi Qwen</span><span><strong id="agent-runtime">—</strong> thời gian</span></div>
+        <div class="agent-counts"><span><strong id="agent-tool-count">0 / 4</strong> lượt gọi công cụ</span><span><strong id="agent-planner-count">0</strong> lượt gọi Qwen</span><span><strong id="agent-runtime">—</strong> thời gian</span></div>
         <div class="agent-conclusion" id="agent-conclusion" hidden><div class="eyebrow">DỰA TRÊN KẾT QUẢ ĐO</div><h3 id="agent-summary-title"></h3><div id="agent-facts"></div><p class="agent-stop" id="agent-stop"></p><details class="agent-limits"><summary>Giới hạn của lần phân tích này</summary><ul id="agent-warnings"></ul></details></div>
         <div class="agent-error" id="agent-error" role="alert" hidden></div>
       </section>

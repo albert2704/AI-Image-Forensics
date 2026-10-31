@@ -1,6 +1,7 @@
 "use strict";
 
 (() => {
+  const rules = globalThis.forensicsRules;
   const $ = (id) => document.getElementById(id);
   const state = { file: null, base64: null, objectURL: null, report: null, selected: null, busy: false, busyKind: null, regionalBusy: false, status: null, generation: 0, investigation: null, activeJob: null, cancelRequested: false, monitoring: false, agentSelected: null, ledgerKey: null };
   const MAX_BYTES = 20 * 1024 * 1024;
@@ -531,13 +532,14 @@
     const variants = report.variants || [];
     if (!variants.length) throw new Error("Máy chủ không trả về ảnh biến thể.");
     state.report = report;
-    $("preview-tag").textContent = `HOÀN TẤT ${Math.max(0, variants.length - 1)} VÒNG`;
+    const scores = variants.map((v) => v.score).filter((v) => numeric(v) && v >= 0 && v <= 1);
+    $("preview-tag").textContent = rules.completionTag(Math.max(0, variants.length - 1), scores.length, variants.length);
+    $("trajectory-title").textContent = rules.trajectoryTitle(report.config?.mode);
     $("original-dimensions").textContent = dimensions(report.image);
     $("original-format").textContent = (report.image?.format || "ẢNH NGUỒN").toUpperCase();
     $("original-size").textContent = bytesText(report.image?.bytes);
     $("variant-select").replaceChildren(...variants.map((variant) => { const option = el("option", variantName(variant)); option.value = variant.id; return option; }));
     $("variant-select").disabled = false;
-    const scores = variants.map((v) => v.score).filter(numeric);
     const baseline = variants.find((v) => v.id === "original" || v.round === 0) || variants[0];
     $("metric-original").textContent = numeric(baseline.score) ? scoreText(baseline.score) : "—";
     $("metric-original-help").textContent = numeric(baseline.score) ? "Phản hồi mô hình · từ 0 đến 1" : "Mô hình chưa khả dụng";
@@ -562,7 +564,7 @@
         : "Bước bổ sung: kiểm tra dấu hiệu chỉnh sửa cục bộ và độ tin cậy của bản đồ trên ảnh gốc.";
     } else if (report.regional?.message) $("regional-status").textContent = translate(report.regional.message);
     if (!scores.length && report.detector?.reason) $("bfree-status").textContent = `${translate(report.detector.reason)} Đã ghi lại kết quả biến đổi ảnh.`;
-    if (report.regional?.heatmap_url || report.regional?.reliability_url) renderRegionalResult(report.regional);
+    if (report.regional?.heatmap_url || report.regional?.reliability_url || report.regional?.overlay_url) renderRegionalResult(report.regional);
     updateRegionalButton();
     reveal($("fixed-evidence-panel"));
     reveal($("measurements-panel"), 60);
@@ -710,7 +712,7 @@
     if (summary) {
       $("agent-summary-title").textContent = translate(summary.title) || "Kết quả đã ghi nhận";
       $("agent-facts").replaceChildren(...(summary.facts || []).map((fact) => { const paragraph = el("p", translate(fact.text)); paragraph.append(evidenceLinks(fact.evidence_ids)); return paragraph; }));
-      const reasons = { budget_exhausted: "Đã dùng hết số lượt gọi mô hình cho phép.", planner_finished: "AI đã chọn kết thúc phân tích.", cancelled: "Đã dừng theo yêu cầu của bạn.", planner_failed: "Mô hình chọn phép thử gặp lỗi; các kết quả đã có vẫn được giữ lại.", original_detector_failed: "Phép đo ảnh gốc gặp lỗi." };
+      const reasons = { budget_exhausted: "Đã dùng hết số lượt gọi công cụ cho phép.", planner_finished: "AI đã chọn kết thúc phân tích.", cancelled: "Đã dừng theo yêu cầu của bạn.", planner_failed: "Mô hình chọn phép thử gặp lỗi; các kết quả đã có vẫn được giữ lại.", original_detector_failed: "Phép đo ảnh gốc gặp lỗi." };
       $("agent-stop").textContent = reasons[summary.stop_reason] || `Đã dừng: ${summary.stop_reason || "chưa rõ lý do"}.`;
       $("agent-warnings").replaceChildren(...(summary.warnings || []).map((warning) => el("li", translate(warning))));
     }
@@ -857,7 +859,7 @@
     if (adaptiveMode()) return startInvestigation();
     if (!state.base64 || state.busy) return;
     setInvestigationURL(null);
-    showError(""); setBusy(true);
+    showError(""); clearResults(); setBusy(true);
     announce("Đã bắt đầu thí nghiệm. Đang tạo biến thể và thu thập phản hồi mô hình.");
     const payload = { filename: state.file.name, image_base64: state.base64, ...readConfig() };
     try {
