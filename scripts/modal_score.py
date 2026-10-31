@@ -274,13 +274,15 @@ def main(argv=None, environ=None):
     models = modal.Volume.from_name(MODEL_VOLUME).with_mount_options(read_only=True)
     retries = modal.Retries(max_retries=2)
 
+    # The image depends on the selected rows, so these functions are defined here
+    # rather than at module scope; Modal requires serialized=True for that.
     @app.function(image=image, gpu=GPU, volumes={MODEL_ROOT: models}, max_containers=2,
-                  timeout=900, retries=retries)
+                  timeout=900, retries=retries, serialized=True)
     def probe():
         return probe_detector(_get_detector())
 
     @app.function(image=image, gpu=GPU, volumes={MODEL_ROOT: models}, max_containers=2,
-                  timeout=900, retries=retries)
+                  timeout=900, retries=retries, serialized=True)
     def score_one(task: dict) -> dict:
         try:
             row, response = score_task(task, _get_detector())

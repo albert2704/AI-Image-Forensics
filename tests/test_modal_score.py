@@ -118,6 +118,32 @@ class TokenGateTests(unittest.TestCase):
         self.assertIn("modal setup", result.stderr)
         self.assertNotIn("ModuleNotFoundError", result.stderr)
 
+    @unittest.skipUnless(importlib.util.find_spec("modal"), "modal SDK is not installed in this environment")
+    def test_functions_defined_inside_main_can_be_registered(self):
+        """Registration must reach authentication; Modal rejects non-global functions without serialized=True."""
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            rows = []
+            for index in range(modal_score.EXPECTED_TEST_SOURCES):
+                path = directory / "images" / f"{index:03d}.png"
+                write_png(path, size=(20, 20), seed=index)
+                rows.append({"source_id": f"src:{index:03d}", "path": f"images/{index:03d}.png",
+                             "label": str(index % 2), "generator": "real", "group_id": f"group:{index:03d}",
+                             "split": "test", "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                             "source_url": "https://example"})
+            with (directory / "manifest.csv").open("w", newline="", encoding="utf-8") as stream:
+                writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+                writer.writeheader()
+                writer.writerows(rows)
+            environment = dict(os.environ, MODAL_TOKEN_ID="not-a-real-token", MODAL_TOKEN_SECRET="not-a-real-secret")
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "modal_score.py"), "--manifest",
+                 str(directory / "manifest.csv"), "--smoke", "--output", str(directory / "out.csv")],
+                capture_output=True, text=True, env=environment, cwd=directory, timeout=120,
+            )
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("global scope", result.stderr)
+
 
 class SourceAndTaskTests(unittest.TestCase):
     def make_manifest(self, directory, rows):
