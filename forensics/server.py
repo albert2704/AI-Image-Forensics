@@ -137,7 +137,7 @@ class Handler(BaseHTTPRequestHandler):
             if location is None:
                 return self.send_json({"error": "Not found"}, 404)
             file = location.directory / filename
-        elif path in {"/", "/index.html", "/style.css", "/app.js", "/rules.js"}:
+        elif path in {"/", "/index.html", "/style.css", "/app.js", "/rules.js", "/guide.js"}:
             file = ROOT / "web" / ("index.html" if path == "/" else path.lstrip("/"))
         else:
             return self.send_json({"error": "Not found"}, 404)
