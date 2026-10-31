@@ -106,6 +106,7 @@ Run software checks:
 
 ```bash
 python -m unittest discover -s tests -v
+node --test tests/test_guide.cjs
 ```
 
 Rebuild the typeset report after measured results and figures are complete:
