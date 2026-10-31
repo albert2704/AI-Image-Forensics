@@ -270,16 +270,47 @@ def load_protocol(path, verify_sources=False):
 
 @contextmanager
 def _run_lock(run_dir):
-    import fcntl
+    """Hold an exclusive lock on a study directory on POSIX and Windows hosts."""
     with (Path(run_dir) / ".run.lock").open("a") as handle:
-        try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as exc:
-            raise RuntimeError("Another benchmark writer is running in this directory.") from exc
+        release = _acquire_file_lock(handle)
         try:
             yield
         finally:
-            fcntl.flock(handle, fcntl.LOCK_UN)
+            release()
+
+
+def _acquire_file_lock(handle):
+    """Lock one byte of an open file and return its release callable.
+
+    POSIX hosts use flock; Windows uses msvcrt's byte-range lock. Both are
+    advisory and process-scoped, which is what stops two writers appending to
+    the same journal.
+    """
+    try:
+        import fcntl
+    except ImportError:
+        fcntl = None
+    if fcntl is not None:
+        try:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise RuntimeError("Another benchmark writer is running in this directory.") from exc
+        return lambda: fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    try:
+        import msvcrt
+    except ImportError as exc:  # pragma: no cover - no known host lacks both
+        raise RuntimeError("This platform cannot lock a study directory.") from exc
+    try:
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+    except OSError as exc:
+        raise RuntimeError("Another benchmark writer is running in this directory.") from exc
+
+    def release():
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+
+    return release
 
 
 def _read_journal(path):

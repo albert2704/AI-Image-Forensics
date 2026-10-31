@@ -17,12 +17,20 @@ Open **http://127.0.0.1:8765**. The interactive B-Free and TruFor adapters defau
 For a new machine, the base transformation workflow can be installed with:
 
 ```bash
+bash scripts/bootstrap.sh          # Linux or macOS, creates .venv and runs the doctor
+```
+
+Or by hand:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 python scripts/doctor.py
 python -m forensics.server
 ```
+
+Windows is supported: `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`, then `run.bat`. Pinned inference packages live in `requirements-models.txt`. See [PLATFORMS.md](docs/PLATFORMS.md) for the macOS/Linux/Windows matrix, device names and what each platform can reproduce.
 
 `scripts/doctor.py` prints which images, model directories and run artifacts are present, and what each missing piece blocks. The recorded demo serves from `output/model-verification/` and is read-only.
 

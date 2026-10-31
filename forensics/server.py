@@ -27,6 +27,26 @@ WORK_LOCK = threading.Lock()
 JOBS = {}
 JOBS_LOCK = threading.Lock()
 
+# Explicit types for served files. mimetypes consults the Windows registry, where
+# .js can map to text/plain, and X-Content-Type-Options: nosniff would then make
+# the browser refuse to execute the application scripts.
+STATIC_TYPES = {
+    ".html": "text/html; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+}
+
+
+def content_type(path):
+    """Return a deterministic Content-Type for a served file."""
+    suffix = Path(path).suffix.lower()
+    return STATIC_TYPES.get(suffix) or mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+
 
 class ExampleUnavailable(RuntimeError):
     """The committed demo run is missing or its pointer is unreadable."""
@@ -145,7 +165,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"error": "Not found"}, 404)
         content = file.read_bytes()
         self.send_response(200)
-        self.send_header("Content-Type", mimetypes.guess_type(str(file))[0] or "application/octet-stream")
+        self.send_header("Content-Type", content_type(file))
         self.send_header("Content-Length", str(len(content)))
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Cache-Control", "no-store")
