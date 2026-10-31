@@ -39,7 +39,7 @@ PREDICTION = {
 }
 
 try:
-    import yaml  # noqa: F401
+    import yaml
 
     HAVE_YAML = True
 except ModuleNotFoundError:
@@ -159,6 +159,13 @@ class EndpointTests(unittest.TestCase):
 
         self.assertEqual(reply.status, 400)
         self.assertEqual(reply.body, {"error": "Invalid Content-Length."})
+
+    def test_non_ascii_and_unbounded_content_length_are_rejected(self):
+        for value in ("\u00b2", "\u00b3", "9" * 5000):
+            with self.subTest(value=value[:8]):
+                reply = self.request(content_length=value, chunks=Untouchable(), get_scorer=forbidden_scorer)
+                self.assertEqual(reply.status, 400)
+                self.assertEqual(reply.body, {"error": "Invalid Content-Length."})
 
     def test_stream_oversize_stops_at_the_cap(self):
         with unittest.mock.patch.object(endpoint, "MAX_UPLOAD_BYTES", 1024):

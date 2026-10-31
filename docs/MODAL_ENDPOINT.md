@@ -17,7 +17,7 @@ The endpoint receives the variant file bytes with no extra encoding. It decodes 
 Install the Modal client and sign in once.
 
 ```bash
-python -m pip install modal
+python -m pip install modal "fastapi[standard]"
 modal token new
 ```
 
@@ -47,6 +47,8 @@ Upload the directory to the Volume root. The mount then has `/models/BFREE_dino2
 ```bash
 modal volume put bfree-weights weights/BFREE_dino2reg4 /BFREE_dino2reg4
 ```
+
+Install `fastapi[standard]` beside Modal on the machine that runs `modal deploy`. The deploy command imports the script locally, and Modal does not provide FastAPI there. The container image installs it too.
 
 The checkpoint must hash to `5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947`. That value was measured by the local CPU adapter run recorded in `output/model-verification/bfree-reference-check.json`. Check it before uploading.
 
@@ -95,7 +97,9 @@ $env:BFREE_REMOTE_SECRET = "the-shared-secret"
 .\run.bat
 ```
 
-Restart the app after changing either value. The launcher keeps inherited variables. If `BFREE_REPO` is also set, the remote branch still wins because it is checked first.
+An optional third value, `BFREE_REMOTE_TIMEOUT`, sets the request timeout in seconds from 1 to 900. The default is 180.
+
+Restart the app after changing any of these values. The launcher keeps inherited variables. If `BFREE_REPO` is also set, the remote branch still wins because it is checked first.
 
 Check the status endpoint after the restart.
 
@@ -143,7 +147,7 @@ Error responses contain only an `error` key.
 | 500 | The model raised while scoring |
 | 503 | The endpoint secret is not configured, or the model could not load |
 
-The local adapter turns every non-200 status, timeout, redirect, connection failure, oversized response, malformed JSON, and contract mismatch into a `DetectorUnavailableError`. A failed call is an explicit error row with a null score. The analysis writes the exception text into that variant's `error` field and leaves `score` null. Missing inference never becomes zero.
+The local adapter accepts only HTTP 200. Every other status becomes a `DetectorUnavailableError`, as do a timeout, a redirect, a connection failure, an oversized response, malformed JSON, and a contract mismatch. A failed call is an explicit error row with a null score. The analysis writes the exception text into that variant's `error` field and leaves `score` null. Missing inference never becomes zero.
 
 ## Secret rotation and turning it off
 
@@ -174,8 +178,8 @@ Measured on 31 October 2026 in the implementation worktree.
 | Item | Result | Method |
 |---|---|---|
 | B-Free checkpoint SHA-256 | `5948ca78f4d94e820c250d24cdf155035b4a85960443800bfe6bb7f06bffe947` | Measured earlier by the local CPU adapter and read from `output/model-verification/bfree-reference-check.json`. Not re-measured here. |
-| New unit tests | 26 passed | `/home/ubuntu/workspace/AI-Image-Forensics/.venv/bin/python -m unittest tests.test_remote tests.test_modal_endpoint` |
-| Full suite | 149 passed | `/home/ubuntu/workspace/AI-Image-Forensics/.venv/bin/python -m unittest discover -s tests` |
+| New unit tests | 29 passed | `/home/ubuntu/workspace/AI-Image-Forensics/.venv/bin/python -m unittest tests.test_remote tests.test_modal_endpoint` |
+| Full suite | 152 passed | `/home/ubuntu/workspace/AI-Image-Forensics/.venv/bin/python -m unittest discover -s tests` |
 | Adapter and loopback overhead, 32 by 24 PNG, 95 bytes | 0.97 ms median, 0.82 ms min, 1.11 ms max, 25 calls | Local `ThreadingHTTPServer` stub on 127.0.0.1, `time.perf_counter` around `detect()` |
 | Adapter and loopback overhead, 1024 by 768 PNG, 4022 bytes | 0.99 ms median, 0.91 ms min, 1.17 ms max, 25 calls | Same stub and timing method |
 | Modal image build | could not run | The modal package and CLI are not installed here, no Modal credentials are present, and deploys are out of scope for this change |

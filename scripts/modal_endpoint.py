@@ -1,10 +1,7 @@
-"""One authenticated Modal endpoint that scores a single uploaded image.
+"""Authenticated single-image scoring on Modal.
 
-The endpoint exists so a teammate can score an image without installing PyTorch
-or model weights. The B-Free checkout is cloned into the image at the reviewed
-revision. The checkpoint lives in a Modal Volume mounted read-only at /models
-and is never baked into the image. The request handling stays importable with no
-modal, fastapi, or torch installed so it can be tested without them.
+B-Free runs from the image, the checkpoint comes from a read-only Volume, and
+the request core stays importable without modal, fastapi, or torch.
 """
 
 from __future__ import annotations
@@ -28,7 +25,7 @@ except ModuleNotFoundError:
 
 from forensics.detectors import BFREE_REVIEWED_REVISION, BFreeDetector, DetectorUnavailableError
 from forensics.pipeline import MAX_BYTES, decode_image, encode
-from forensics.remote import BFREE_CHECKPOINT_SHA256, SECRET_HEADER, validate_prediction
+from forensics.remote import BFREE_CHECKPOINT_SHA256, ERROR_PREFIX, SECRET_HEADER, validate_prediction
 
 
 MAX_UPLOAD_BYTES = MAX_BYTES
@@ -77,9 +74,13 @@ async def handle_score_request(
     if not _matches(presented_secret, expected_secret):
         return finish(401, {"error": "Unauthorized."})
     if content_length is not None:
-        if not isinstance(content_length, str) or not content_length.isdigit():
+        if not (isinstance(content_length, str) and content_length.isascii() and content_length.isdigit()):
             return finish(400, {"error": "Invalid Content-Length."})
-        if int(content_length) > MAX_UPLOAD_BYTES:
+        try:
+            declared = int(content_length)
+        except ValueError:
+            return finish(400, {"error": "Invalid Content-Length."})
+        if declared > MAX_UPLOAD_BYTES:
             return finish(413, {"error": "Image exceeds the 20 MiB limit."})
     data = bytearray()
     async for chunk in chunks:
@@ -109,7 +110,11 @@ async def handle_score_request(
             return finish(503, {"error": f"Remote scoring is unavailable: {exc}"})
         except Exception as exc:
             return finish(500, {"error": f"Scoring failed: {type(exc).__name__}: {exc}"})
-        prediction = validate_prediction(raw)
+        try:
+            prediction = validate_prediction(raw)
+        except DetectorUnavailableError as exc:
+            reason = str(exc).removeprefix(ERROR_PREFIX)
+            return finish(500, {"error": f"Scoring failed: the detector result is invalid: {reason}"})
         return finish(200, prediction, prediction["device"])
     except Exception as exc:
         return finish(500, {"error": f"Scoring failed: {type(exc).__name__}: {exc}"})
@@ -169,8 +174,16 @@ def get_scorer() -> object:
 
 
 if modal is not None:
-    from fastapi import Request
-    from fastapi.responses import JSONResponse
+    try:
+        from fastapi import Request
+        from fastapi.responses import JSONResponse
+    except ModuleNotFoundError as exc:
+        # modal deploy imports this module on the operator machine, where modal
+        # provides no FastAPI. The container image installs it.
+        raise ModuleNotFoundError(
+            "The endpoint script needs fastapi on the deploying machine. "
+            "Run: python -m pip install 'fastapi[standard]'"
+        ) from exc
 
     app = modal.App(APP_NAME)
     models = modal.Volume.from_name(VOLUME_NAME, create_if_missing=False)

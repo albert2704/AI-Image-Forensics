@@ -55,6 +55,8 @@ class StubHandler(http.server.BaseHTTPRequestHandler):
         data = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
         try:
             self.send_response(status)
+            for name, value in self.server.extra_headers.items():
+                self.send_header(name, value)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
@@ -71,6 +73,7 @@ class RemoteDetectorTests(unittest.TestCase):
         self.httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), StubHandler)
         self.httpd.requests = []
         self.httpd.script = (200, PREDICTION, 0)
+        self.httpd.extra_headers = {}
         threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
         self.addCleanup(self.httpd.server_close)
         self.addCleanup(self.httpd.shutdown)
@@ -120,6 +123,24 @@ class RemoteDetectorTests(unittest.TestCase):
                 with self.assertRaises(DetectorUnavailableError) as caught:
                     RemoteBFreeDetector(self.url, "s3cret").detect(self.image)
                 self.assertIn(expected, str(caught.exception))
+
+    def test_only_http_200_carries_a_score(self):
+        for status in (201, 202, 206):
+            with self.subTest(status=status):
+                self.httpd.script = (status, PREDICTION, 0)
+                with self.assertRaises(DetectorUnavailableError) as caught:
+                    RemoteBFreeDetector(self.url, "s3cret").detect(self.image)
+                self.assertIn(f"HTTP {status}", str(caught.exception))
+
+    def test_redirect_is_refused_without_echoing_the_target(self):
+        self.httpd.script = (302, PREDICTION, 0)
+        self.httpd.extra_headers = {"Location": f"{self.url}?token=REVIEW_SECRET_ABC"}
+
+        with self.assertRaises(DetectorUnavailableError) as caught:
+            RemoteBFreeDetector(self.url, "s3cret").detect(self.image)
+
+        self.assertIn("redirected", str(caught.exception))
+        self.assertNotIn("REVIEW_SECRET_ABC", str(caught.exception))
 
     def test_timeout_names_the_cause(self):
         self.httpd.script = (200, PREDICTION, 2.0)

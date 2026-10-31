@@ -88,7 +88,9 @@ def validate_prediction(payload: object) -> dict:
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         fp.close()
-        raise _unavailable(f"the endpoint redirected to {newurl}, which is refused.")
+        # The target is server-controlled. Keeping it out of the message keeps it
+        # out of report.json, where a reflected secret would otherwise persist.
+        raise _unavailable("the endpoint redirected to another address, which is refused.")
 
 
 class RemoteBFreeDetector:
@@ -123,6 +125,7 @@ class RemoteBFreeDetector:
         )
         try:
             with self._opener.open(request, timeout=self._timeout) as response:
+                status = response.status
                 body = response.read(MAX_RESPONSE_BYTES + 1)
         except DetectorUnavailableError:
             raise
@@ -140,6 +143,8 @@ class RemoteBFreeDetector:
         except Exception as exc:
             # urllib can reject a malformed request before any socket work, for example with InvalidURL.
             raise _unavailable(f"the request failed: {type(exc).__name__}: {exc}") from None
+        if status != 200:
+            raise _unavailable(f"the endpoint returned HTTP {status} instead of 200.")
         if len(body) > MAX_RESPONSE_BYTES:
             raise _unavailable(f"the response is larger than {MAX_RESPONSE_BYTES} bytes.")
         try:
