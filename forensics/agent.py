@@ -6,12 +6,11 @@ import json
 import math
 import os
 from pathlib import Path
-import shutil
 import time
 import uuid
 
 from .pipeline import decode_image, encode, sha256, distortion
-from .detectors import run_trufor
+from .detectors import publish_regional, run_trufor
 
 ACTIONS = [
     {"id": "jpeg_q85_r1", "description": "One JPEG encode at quality 85; detect resulting image."},
@@ -30,6 +29,8 @@ def validate_agent_config(config):
     regional = config.get("allow_regional", True)
     if not isinstance(regional, bool):
         raise ValueError("allow_regional must be a boolean.")
+    if "threshold" in config and config["threshold"] != .5:
+        raise ValueError("The adaptive investigation uses a fixed 0.5 threshold. Remove the threshold field or set it to 0.5.")
     return {"budget": budget, "allow_regional": regional, "threshold": .5,
             "threshold_rule": "score > threshold", "planner_call_limit": budget,
             "trufor_timeout_seconds": 600}
@@ -126,15 +127,9 @@ def investigate(data, filename, config, output_root, detector, planner, *, run_i
                     result = run_trufor(directory / "original.png", directory, os.environ["TRUFOR_REPO"], os.environ.get("TRUFOR_PYTHON", "python3"), os.environ.get("TRUFOR_DEVICE", "cpu"))
                 if result.get("status") != "complete":
                     raise RuntimeError(result.get("message", "Regional tool did not return complete evidence."))
-                for key in ["heatmap", "reliability", "overlay"]:
-                    if result.get(key + "_path"):
-                        path = Path(result[key + "_path"]).resolve()
-                        if not path.is_relative_to(directory.resolve()) or path.suffix != ".png":
-                            raise ValueError("Unexpected regional artifact path.")
-                        published = directory / f"agent-{key}.png"
-                        shutil.copyfile(path, published)
-                        item[key + "_url"] = f"/runs/{run_id}/{published.name}"
-                item.update(score=float(result["score"]), score_kind="local_manipulation", detector_evidence=result)
+                record = publish_regional(result, directory, run_id, "agent-")
+                item.update(score=float(record["score"]), score_kind="local_manipulation", detector_evidence=record)
+                item.update({key: record[key] for key in ("heatmap_url", "reliability_url", "overlay_url") if key in record})
             else:
                 condition = next(c for c in DEFAULT_CONDITIONS if c["name"] == action)
                 current, content, fmt, operations = render_condition(original, condition)

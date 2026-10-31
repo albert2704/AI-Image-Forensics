@@ -240,7 +240,7 @@ def run_trufor(image_path, output_dir, repo, python_executable, device="cpu") ->
         raise DetectorUnavailableError("TruFor exceeded the 10-minute inference limit.") from exc
     (run_dir / "inference.log").write_text(result.stdout + "\n" + result.stderr, encoding="utf-8")
     if result.returncode != 0 or not result_path.is_file():
-        raise DetectorUnavailableError(f"TruFor produced no usable result. See {run_dir / 'inference.log'}")
+        raise DetectorUnavailableError(f"TruFor produced no usable result. See {run_dir.name}/inference.log in the run directory.")
     with np.load(result_path, allow_pickle=False) as output:
         required = {"map", "conf", "score", "imgsize"}
         if not required.issubset(output.files):
@@ -290,3 +290,27 @@ def run_trufor(image_path, output_dir, repo, python_executable, device="cpu") ->
         "reliability_legend": "Black 0 → white 1; lighter pixels indicate greater estimated localization reliability.",
         "reliability_mean": float(confidence.mean()),
     }
+
+
+REGIONAL_PATH_KEYS = ("heatmap_path", "reliability_path", "overlay_path", "npz_path")
+
+
+def publish_regional(result: dict, directory, run_id: str, prefix: str) -> dict:
+    """Copy regional PNGs into the run directory and return a record with no local paths.
+
+    The adapter returns absolute paths for its own use. A served report only
+    needs the URLs, so the paths stop here.
+    """
+    record = {key: value for key, value in result.items() if key not in REGIONAL_PATH_KEYS}
+    root = Path(directory).resolve()
+    for key in ("heatmap", "reliability", "overlay"):
+        local = result.get(f"{key}_path")
+        if not local:
+            continue
+        source = Path(local).resolve()
+        if not source.is_relative_to(root) or source.suffix.lower() != ".png" or not source.is_file():
+            raise ValueError("Regional adapter returned an unexpected artifact path.")
+        published = root / f"{prefix}{key}.png"
+        shutil.copyfile(source, published)
+        record[f"{key}_url"] = f"/runs/{run_id}/{published.name}"
+    return record
