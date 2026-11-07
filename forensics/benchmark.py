@@ -270,16 +270,47 @@ def load_protocol(path, verify_sources=False):
 
 @contextmanager
 def _run_lock(run_dir):
-    import fcntl
+    """Hold an exclusive lock on a study directory on POSIX and Windows hosts."""
     with (Path(run_dir) / ".run.lock").open("a") as handle:
-        try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as exc:
-            raise RuntimeError("Another benchmark writer is running in this directory.") from exc
+        release = _acquire_file_lock(handle)
         try:
             yield
         finally:
-            fcntl.flock(handle, fcntl.LOCK_UN)
+            release()
+
+
+def _acquire_file_lock(handle):
+    """Lock one byte of an open file and return its release callable.
+
+    POSIX hosts use flock; Windows uses msvcrt's byte-range lock. Both are
+    advisory and process-scoped, which is what stops two writers appending to
+    the same journal.
+    """
+    try:
+        import fcntl
+    except ImportError:
+        fcntl = None
+    if fcntl is not None:
+        try:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise RuntimeError("Another benchmark writer is running in this directory.") from exc
+        return lambda: fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    try:
+        import msvcrt
+    except ImportError as exc:  # pragma: no cover - no known host lacks both
+        raise RuntimeError("This platform cannot lock a study directory.") from exc
+    try:
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+    except OSError as exc:
+        raise RuntimeError("Another benchmark writer is running in this directory.") from exc
+
+    def release():
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+
+    return release
 
 
 def _read_journal(path):
@@ -318,10 +349,50 @@ def _valid_prediction(prediction):
     return result
 
 
+def _fingerprint_difference(expected, actual):
+    # A bare mismatch hides which term drifted, and the adapter file is one of them.
+    missing = object()
+    hash_like = re.compile(r"[0-9a-f]{32,}")
+
+    def show(value):
+        if value is missing:
+            return "<absent>"
+        if isinstance(value, str) and hash_like.fullmatch(value):
+            return value[:12]
+        return json.dumps(value, sort_keys=True)
+
+    if not isinstance(expected, dict):
+        expected = {}
+    if not isinstance(actual, dict):
+        actual = {}
+
+    changed = set()
+    differences = []
+    for key in sorted(set(expected) | set(actual)):
+        left, right = expected.get(key, missing), actual.get(key, missing)
+        if key == "versions" and isinstance(left, dict) and isinstance(right, dict):
+            for version in sorted(set(left) | set(right)):
+                frozen, current = left.get(version, missing), right.get(version, missing)
+                if frozen != current:
+                    changed.add(f"versions.{version}")
+                    differences.append(f"versions.{version} expected {show(frozen)} actual {show(current)}")
+            continue
+        if left != right:
+            changed.add(key)
+            differences.append(f"{key} expected {show(left)} actual {show(right)}")
+    message = "B-Free fingerprint differs from the frozen protocol."
+    if differences:
+        message += " Differing fields: " + "; ".join(differences) + "."
+    if changed == {"preprocess_sha256"}:
+        message += " preprocess_sha256 covers the checkpoint config, the upstream B-Free source and the adapter source."
+    return message
+
+
 def _check_detector(protocol, detector_id, fingerprint):
     if detector_id == "bfree":
-        if protocol.get("bfree_fingerprint") != fingerprint:
-            raise ValueError("B-Free fingerprint differs from the frozen protocol.")
+        expected = protocol.get("bfree_fingerprint")
+        if expected != fingerprint:
+            raise ValueError(_fingerprint_difference(expected, fingerprint))
     elif detector_id == "frequency":
         expected_ids = sorted(row["source_id"] for row in protocol["sources"] if row["split"] == "train")
         if fingerprint.get("protocol_hash") != protocol["protocol_hash"] or sorted(fingerprint.get("training_source_ids", [])) != expected_ids:

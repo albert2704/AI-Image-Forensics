@@ -20,36 +20,39 @@ AI Image Forensics Assistant là nguyên mẫu nghiên cứu chạy trên máy c
 - **Để AI chọn phép thử:** Qwen2.5-1.5B-Instruct chạy cục bộ, chọn công cụ trong phạm vi và ngân sách cho phép.
 - **Xuất bằng chứng:** JSON, CSV, kích thước ảnh, dung lượng, lịch sử phép biến đổi, MSE và PSNR.
 
-Dự án còn có nghiên cứu thí điểm cố định gồm **320 ảnh** và mô hình đối chứng FFT/DCT được huấn luyện chỉ trên ảnh gốc thuộc tập huấn luyện.
+Kho mã chứa manifest, giao thức và kết quả đo của nghiên cứu thí điểm cố định gồm **320 ảnh**, cùng mô hình đối chứng FFT/DCT được huấn luyện chỉ trên ảnh gốc thuộc tập huấn luyện. Ảnh của bộ dữ liệu và trọng số mô hình không được đóng gói trong kho mã.
 
 ## Chạy ứng dụng
 
 ### Trên máy đã cài mô hình
 
-Môi trường Python và mô hình đã được cài trên máy phát triển hiện tại. Nhấp đúp `start.command`, hoặc chạy từ thư mục dự án:
+Môi trường Python và mô hình đã được cài trên máy phát triển ban đầu. Với mỗi bản sao kho mã, chạy `python scripts/doctor.py` trước để kiểm tra các thành phần hiện có. Sau đó nhấp đúp `start.command`, hoặc chạy từ thư mục dự án:
 
 ```bash
 bash scripts/start-with-models.sh
 ```
 
-Mở **http://127.0.0.1:8766**.
+Mở **http://127.0.0.1:8765**. Muốn dùng cổng 8766, thêm `--port 8766` vào lệnh khởi động và mở địa chỉ tương ứng.
 
 B-Free và TruFor trong giao diện mặc định chạy trên CPU. Bộ chọn phép thử tự dùng Apple MPS khi có hỗ trợ. Lần phân tích đầu cần nạp mô hình; quét từng vùng trên ảnh lớn có thể mất vài phút.
 
 ### Cài trên máy mới
 
-Cài quy trình biến đổi và đo sai khác cơ bản:
+Trên Linux hoặc macOS, chạy `bash scripts/bootstrap.sh` để tạo `.venv` và kiểm tra môi trường. Hoặc cài quy trình biến đổi và đo sai khác cơ bản bằng tay:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+python scripts/doctor.py
 python -m forensics.server
 ```
 
+Windows: chạy `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`, rồi `run.bat`. Xem [nền tảng được hỗ trợ](docs/PLATFORMS.md) và các gói suy luận trong `requirements-models.txt`. Công cụ doctor liệt kê ảnh, thư mục mô hình, kết quả đã có và các thành phần còn thiếu. Demo đã lưu được phục vụ từ `output/model-verification/` ở chế độ chỉ đọc.
+
 Để chạy suy luận B-Free, TruFor và bộ chọn phép thử, làm theo [hướng dẫn cài mô hình](docs/MODEL_SETUP.md). Khi chưa cấu hình mô hình, bạn vẫn xử lý và đo sai khác ảnh được; điểm phát hiện sẽ để trống. Hệ thống không tạo điểm hay bản đồ giả để thay thế.
 
-Máy chủ chỉ lắng nghe trên máy cục bộ. Ảnh tải lên và kết quả được lưu trong `output/runs/`; xóa thư mục của một phiên để xóa ảnh nguồn và các bản sao đã lưu.
+Máy chủ chỉ lắng nghe trên máy cục bộ. Mặc định ảnh được xử lý cục bộ; nếu cấu hình endpoint Modal, ảnh sẽ được gửi tới dịch vụ đó để suy luận. Ảnh tải lên và kết quả được lưu trong `output/runs/`; xóa thư mục của một phiên để xóa ảnh nguồn và các bản sao đã lưu.
 
 ## Thử phân tích một ảnh
 
@@ -140,6 +143,16 @@ python -m forensics.benchmark freeze data/benchmark/manifest.csv \
 
 Giữ nguyên giao thức đã bàn giao. Bộ chạy từ chối thay đổi ảnh nguồn, danh tính mô hình, tiền xử lý hoặc mã triển khai đã đóng băng. Replay chính sách trên 24 ảnh nguồn ở `output/agent-evaluation/` đo cách chọn phép thử và chi phí lượt gọi; không đo độ trễ toàn trình hay so sánh độ chính xác xác thực ảnh.
 
+## Suy luận tùy chọn trên Modal
+
+Ba tác vụ Modal bổ sung năng lực suy luận từ xa, không thay thế backend ứng dụng. Bắt đầu với [hướng dẫn cài Modal](docs/MODAL_SETUP.md), gồm thứ tự cài và các biến môi trường mà ứng dụng sử dụng.
+
+- [Chạy theo lô](docs/MODAL_BATCH.md): chấm lại 192 ảnh kiểm tra dưới chín điều kiện trên CUDA. CUDA thay đổi dấu vân tay mô hình, nên đây là nghiên cứu mới được gắn nhãn riêng, không phải phần tiếp tục của nghiên cứu MPS đã bàn giao.
+- [Endpoint B-Free](docs/MODAL_ENDPOINT.md): chấm ảnh qua endpoint có xác thực, giúp người dùng không cần cài PyTorch và trọng số cục bộ.
+- [Endpoint TruFor](docs/MODAL_TRUFOR.md): quét từng vùng qua endpoint; trọng số được tải và kiểm tra khi dựng image riêng tư.
+
+Khi không cấu hình endpoint, ảnh không rời máy. Khi cấu hình endpoint tương ứng, ảnh tải lên và các biến thể được gửi tới Modal để chấm điểm.
+
 ## Tài liệu và kiểm tra
 
 | Nội dung | Tài liệu |
@@ -148,7 +161,7 @@ Giữ nguyên giao thức đã bàn giao. Bộ chạy từ chối thay đổi �
 | Kết quả đã đo | [Benchmark](docs/BENCHMARK_RESULTS.md) · [Chính sách tác tử](docs/AGENT_RESULTS.md) |
 | Thiết kế và giao thức | [Tác tử](docs/AGENT_DESIGN.md) · [Thí nghiệm](docs/EXPERIMENT_PROTOCOL.md) · [Benchmark](docs/BENCHMARK_PROTOCOL.md) |
 | Cài mô hình và dữ liệu | [Model setup](docs/MODEL_SETUP.md) · [Dataset](docs/DATASET.md) |
-| Giao diện | [Nghiên cứu UI](docs/UI_RESEARCH.md) · [Kiểm tra UI tác tử](docs/AGENT_UI_QA.md) |
+| Giao diện | [Nghiên cứu UI](docs/UI_RESEARCH.md) · [Kiểm tra UI tác tử](docs/AGENT_UI_QA.md) · [Kiểm tra hướng dẫn từng bước](docs/GUIDED_UI_QA.md) |
 | Nghiên cứu tiếp theo | [Lưới resize × JPEG tìm điểm gãy](docs/BREAKPOINT_PROTOCOL.md) — đã đặc tả, chưa chấm điểm |
 
 Các tài liệu chuyên sâu hiện chủ yếu bằng tiếng Anh. Bằng chứng kỹ thuật bổ sung nằm trong `output/verification/processing-check.json` và `output/model-verification/`, gồm chuỗi điểm B-Free thực, đối chiếu logit với mẫu chính thức và bản đồ TruFor.
@@ -157,6 +170,7 @@ Chạy kiểm tra phần mềm:
 
 ```bash
 python -m unittest discover -s tests -v
+node --test tests/test_guide.cjs
 ```
 
 Dựng lại báo cáo sau khi có đủ kết quả và biểu đồ:

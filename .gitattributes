@@ -1,0 +1,22 @@
+# Normalize line endings so shell scripts survive a Windows checkout.
+* text=auto
+
+*.sh text eol=lf
+*.command text eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.py text eol=lf
+*.js text eol=lf
+*.cjs text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.zip binary
+*.pth binary
+*.safetensors binary

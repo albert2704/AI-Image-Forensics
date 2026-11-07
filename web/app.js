@@ -1,8 +1,9 @@
 "use strict";
 
 (() => {
+  const rules = globalThis.forensicsRules;
   const $ = (id) => document.getElementById(id);
-  const state = { file: null, base64: null, objectURL: null, report: null, selected: null, busy: false, busyKind: null, regionalBusy: false, status: null, generation: 0, investigation: null, activeJob: null, cancelRequested: false, monitoring: false, agentSelected: null, ledgerKey: null };
+  const state = { file: null, base64: null, objectURL: null, report: null, failed: null, selected: null, busy: false, busyKind: null, regionalBusy: false, status: null, generation: 0, investigation: null, activeJob: null, cancelRequested: false, monitoring: false, agentSelected: null, ledgerKey: null, guide: { sourceKey: null, selectedId: null, follow: true, running: false, disconnected: false }, savedRuns: new Set() };
   const MAX_BYTES = 20 * 1024 * 1024;
   const SVG_NS = "http://www.w3.org/2000/svg";
   const form = $("experiment-form");
@@ -168,6 +169,132 @@
     return payload;
   }
 
+  function renderGuide() {
+    const adaptive = adaptiveMode();
+    const report = adaptive ? state.investigation : state.report;
+    const guideReport = report || (adaptive ? null : state.failed);
+    const model = ForensicsGuide.build({ report: guideReport, adaptive, hasImage: !!state.base64, busy: state.busy, busyKind: state.busyKind, saved: !!report && state.savedRuns.has(report.run_id), availability: state.status, disconnected: state.guide.disconnected, cancelRequested: state.cancelRequested });
+    const navigation = state.guide;
+    if (navigation.sourceKey !== model.sourceKey) {
+      $("source-controls").open = !report;
+      navigation.sourceKey = model.sourceKey;
+      navigation.selectedId = null;
+      navigation.follow = true;
+      navigation.running = false;
+    }
+    document.body.classList.toggle("has-guide-result", !!report);
+    const status = typeof report?.status === "string" ? report.status : null;
+    const finishedLive = navigation.running && status !== null && status !== "running";
+    navigation.running = status === "running";
+    const following = model.steps.find((item) => item.id === model.initialStepId) || model.steps[0];
+    if (finishedLive && model.finding) {
+      navigation.selectedId = model.finding.id;
+      navigation.follow = false;
+    } else if (navigation.follow || !model.steps.some((item) => item.id === navigation.selectedId)) navigation.selectedId = following.id;
+    const index = model.steps.findIndex((item) => item.id === navigation.selectedId);
+    const current = model.steps[index];
+    const signature = model.steps.map((item) => `${item.id}:${item.kind}:${item.title}`).join("|");
+    if ($("guide-stages").dataset.signature !== signature) {
+      $("guide-stages").dataset.signature = signature;
+      $("guide-stages").replaceChildren(...model.steps.map((item, i) => {
+        const li = el("li");
+        const button = el("button", `${i + 1}. ${item.label}`);
+        button.setAttribute("aria-label", button.textContent);
+        button.type = "button"; button.dataset.guideStep = item.id; button.dataset.stepNumber = String(i + 1); button.title = item.title;
+        button.addEventListener("click", () => chooseGuideStep(item.id)); li.append(button); return li;
+      }));
+    }
+    document.querySelectorAll("[data-guide-step]").forEach((button) => {
+      button.setAttribute("aria-current", button.dataset.guideStep === current.id ? "step" : "false");
+    });
+    const setText = (id, text) => { if ($(id).textContent !== text) $(id).textContent = text; };
+    setText("guide-origin", model.origin);
+    setText("guide-footnote", adaptive ? "AI chọn phép thử từ các kết quả đo. Lời dẫn này được tạo từ chính các phép đo đó." : "Bạn chọn thiết lập phép thử. Lời dẫn được tạo từ các kết quả đo thực tế của phiên này.");
+    setText("guide-step-label", `BƯỚC ${index + 1} / ${model.steps.length}${navigation.follow && report?.status === "running" ? " · ĐANG THEO DÕI" : ""}`);
+    setText("guide-step-title", current.title);
+    setText("guide-step-text", current.text);
+    $("guide-narration").hidden = current.kind === "finding";
+    $("guide-step-text").hidden = !!current.lesson && current.kind !== "intro";
+    $("guide-flow").hidden = !current.flow;
+    $("guide-flow").replaceChildren(...(current.flow || []).map((text) => el("li", text)));
+    $("guide-model").hidden = !current.model;
+    setText("guide-model-name", current.model?.name || "");
+    setText("guide-model-text", current.model?.text || "");
+    $("guide-lesson").hidden = !current.lesson;
+    for (const key of ["purpose", "action", "meaning"]) setText(`guide-${key}`, current.lesson?.[key] || "");
+    const transformation = current.transformation;
+    $("guide-transformation").hidden = !transformation || !transformation.from || !transformation.to;
+    setText("guide-transform-from", transformation?.from || "");
+    setText("guide-transform-name", transformation?.name || "");
+    setText("guide-transform-to", transformation?.to || "");
+    setText("guide-transform-history", transformation?.history || "");
+    $("guide-map-legends").hidden = !current.legends?.length;
+    $("guide-map-legends").replaceChildren(...(current.legends || []).map((text) => el("li", translate(text))));
+    $("viewer").dataset.lessonKind = current.kind;
+    $("guide-finding").hidden = current.kind !== "finding";
+    if (current.kind === "finding") { setText("guide-finding-title", current.title); setText("guide-finding-text", current.text); }
+    const score = ["baseline", "perturbation", "finding"].includes(current.kind) && numeric(current.score);
+    $("guide-score-comparison").hidden = !score;
+    if (score) {
+      setText("guide-baseline-label", "Điểm B-Free ảnh gốc");
+      const measuredScore = (value) => Math.abs(value - model.threshold) < .001 ? numberText(value, 6) : scoreText(value);
+      const group = (value) => value > model.threshold ? "Trên mốc" : "Bằng hoặc dưới mốc";
+      setText("guide-baseline-score", numeric(current.baselineScore) ? measuredScore(current.baselineScore) : "Chưa đo");
+      setText("guide-baseline-decision", numeric(current.baselineScore) ? group(current.baselineScore) : "");
+      setText("guide-current-label", current.kind === "baseline" ? "Vị trí so với ngưỡng" : "Điểm B-Free ảnh đang xem");
+      setText("guide-current-score", current.kind === "baseline" ? current.decision : measuredScore(current.score));
+      setText("guide-current-decision", current.kind === "baseline" ? "" : current.decision || "");
+      setText("guide-score-note", `Mốc chia nhóm ${numberText(model.threshold, 3)}: chỉ điểm lớn hơn mốc mới thuộc nhóm có tín hiệu AI.`);
+    }
+    $("guide-scale").hidden = !score || current.kind !== "baseline";
+    $("viewer-evidence").hidden = !score && $("guide-transformation").hidden;
+    if (score) {
+      $("guide-score-marker").style.left = `${current.score * 100}%`;
+      $("guide-threshold-marker").style.left = `${model.threshold * 100}%`;
+      $("guide-scale-track").setAttribute("aria-valuenow", String(current.score));
+      $("guide-scale-track").setAttribute("aria-valuetext", `${current.score}; ${current.decision || ""}; mốc ${model.threshold}`);
+      setText("guide-scale-note", `Vạch mảnh là mốc ${numberText(model.threshold, 3)}; chấm tròn là điểm đang xem. Đây là tín hiệu mô hình, không phải % ảnh do AI tạo.`);
+    }
+    $("narrator-regional").hidden = current.kind !== "regional" || !current.maps;
+    for (const [id, value] of [["guide-region-overlay", current.maps?.overlay], ["guide-region-reliability", current.maps?.reliability]]) {
+      const url = sameOriginURL(value); $(id).closest("figure").hidden = !url;
+      if (url) setPreview($(id), url); else $(id).removeAttribute("src");
+    }
+    const preview = current.previewId;
+    if (preview && (adaptive ? state.agentSelected : state.selected) !== preview) {
+      if (adaptive) selectAgentObservation(preview); else selectVariant(preview);
+    }
+    document.querySelectorAll(".guide-highlight").forEach((node) => node.classList.remove("guide-highlight"));
+    if (current.kind !== "intro" && current.kind !== "status") $(current.targetId)?.classList.add("guide-highlight");
+    $("guide-actions").hidden = model.steps.length < 2;
+    $("guide-prev").disabled = index <= 0;
+    $("guide-next").disabled = index >= model.steps.length - 1;
+    $("guide-next").textContent = current.nextLabel + (index < model.steps.length - 1 ? " →" : "");
+    $("guide-replay").hidden = !report || !model.steps.some((item) => ["baseline", "perturbation", "regional"].includes(item.kind));
+    $("guide-follow").hidden = navigation.follow || report?.status !== "running";
+    $("guide-panel").dataset.stage = current.kind;
+    $("agent-overview").hidden = !adaptive || !state.investigation;
+    $("research-details").hidden = !report;
+  }
+
+  function chooseGuideStep(id) {
+    state.guide.selectedId = id;
+    state.guide.follow = false;
+    renderGuide();
+  }
+
+  function stepGuide(delta) {
+    const buttons = Array.from(document.querySelectorAll("[data-guide-step]"));
+    const index = buttons.findIndex((button) => button.dataset.guideStep === state.guide.selectedId);
+    const next = buttons[index + delta];
+    if (next) chooseGuideStep(next.dataset.guideStep);
+  }
+
+  function reviewPreview(id) {
+    if (adaptiveMode()) selectAgentObservation(id); else selectVariant(id);
+    chooseGuideStep(id);
+  }
+
   function readConfig() {
     return {
       quality: Number($("quality").value), scale: Number($("scale").value) / 100,
@@ -201,7 +328,7 @@
     if (!scaleOff) parts.push(`${Math.round(config.scale * 100)}% mỗi vòng`);
     $("sequence-detail").textContent = parts.join(" · ");
     if (!state.busy) {
-      $("run-label").textContent = adaptiveMode() ? "Bắt đầu phân tích" : "Chạy thí nghiệm";
+      $("run-label").textContent = "Phân tích ảnh";
       $("run-button").disabled = !state.base64 || (adaptiveMode() && (!state.status?.planner?.available || !state.status?.bfree?.available));
       $("run-help").textContent = !state.file ? "Chọn ảnh để bắt đầu phân tích." : adaptiveMode() ? !state.status?.planner?.available ? "Cần cài mô hình chọn phép thử để phân tích thích ứng." : !state.status?.bfree?.available ? "Cần cấu hình B-Free để bắt đầu phân tích." : "AI có thể dừng trước khi dùng hết số lượt cho phép." : state.report ? "Thiết lập này áp dụng cho lần chạy tiếp theo." : "Ảnh gốc và các biến thể sẽ được đo trong cùng phiên.";
     }
@@ -219,13 +346,15 @@
     $("fixed-regional-panel").hidden = adaptive;
     $("trajectory-panel").hidden = adaptive;
     $("measurements-panel").hidden = adaptive || !state.report;
-    $("preview-title").textContent = adaptive ? "Đối chiếu ảnh từ phép thử." : "Theo dõi ảnh sau biến đổi.";
+    $("preview-title").textContent = "Ảnh đang được giải thích";
     $("variant-select").setAttribute("aria-label", adaptive ? "Chọn phép thử đã có kết quả" : "Chọn vòng xử lý");
     clearResults(true);
     viewer.reset();
     if (adaptive && state.investigation) renderInvestigation(state.investigation);
     else if (!adaptive && state.report) renderReport(state.report);
     updateConfig();
+    state.guide.sourceKey = null;
+    renderGuide();
     reveal(adaptive ? $("agent-settings") : $("fixed-settings"));
   }
 
@@ -244,13 +373,14 @@
     document.body.dataset.busyKind = busy ? kind : "";
     controls.forEach((control) => { control.disabled = busy; });
     $("run-button").disabled = busy || !state.base64;
-    $("run-label").textContent = busy ? { experiment: "Đang chạy thí nghiệm…", investigation: "Đang phân tích…", regional: "Đang kiểm tra ảnh gốc…", example: "Đang mở ví dụ…" }[kind] : "Chạy thí nghiệm";
+    $("run-label").textContent = busy ? { experiment: "Đang chạy thí nghiệm…", investigation: "Đang phân tích…", regional: "Đang kiểm tra ảnh gốc…", example: "Đang mở ví dụ…", saved: "Đang mở phiên đã lưu…" }[kind] : "Chạy thí nghiệm";
     $("run-arrow").hidden = busy;
     $("run-spinner").hidden = !busy;
     $("run-help").textContent = busy ? kind === "investigation" ? "Mô hình đang xử lý trên máy. Theo dõi kết quả đo và các phép thử AI chọn trong nhật ký phân tích." : "Đang thu thập kết quả từ mô hình trên máy. Quá trình có thể mất vài phút." : "";
     form.setAttribute("aria-busy", String(busy));
     updateConfig();
     updateRegionalButton();
+    renderGuide();
   }
 
   function setModelState(key, info) {
@@ -278,7 +408,9 @@
       $("planner-status").textContent = translate(planner?.reason) || "Chưa cấu hình mô hình chọn phép thử.";
       updateRegionalButton();
       updateConfig();
+      renderGuide();
     } catch {
+      showError("Không kết nối được với máy chủ trên máy này. Khởi động máy chủ rồi tải lại trang để kiểm tra mô hình.");
       $("bfree-status").textContent = "Không kết nối được với máy chủ trên máy này. Hãy khởi động máy chủ rồi tải lại trang.";
       $("regional-status").textContent = "Chưa thể kiểm tra mô hình khi chưa kết nối được với máy chủ.";
       ["bfree-badge", "trufor-badge"].forEach((id) => { $(id).textContent = "MẤT KẾT NỐI"; $(id).classList.add("offline"); });
@@ -300,9 +432,11 @@
     if (!preserveRecords) {
       setInvestigationURL(null);
       state.report = null;
+      state.failed = null;
       state.investigation = null;
       state.agentSelected = null;
       state.ledgerKey = null;
+      state.guide = { sourceKey: null, selectedId: null, follow: true, running: false, disconnected: false };
       $("agent-state").textContent = "SẴN SÀNG";
       $("agent-current-step").textContent = "Chọn ảnh, đặt giới hạn lượt gọi rồi bắt đầu phân tích.";
       $("agent-conclusion").hidden = true;
@@ -347,6 +481,7 @@
     $("step-region").classList.remove("current");
     if (state.status) { setModelState("bfree", state.status.bfree); setModelState("trufor", state.status.trufor); }
     updateRegionalButton();
+    renderGuide();
   }
 
   async function chooseFile(file, allowBusy = false) {
@@ -395,6 +530,7 @@
       $("step-transform").classList.add("current");
       $("run-button").disabled = state.busy;
       updateConfig();
+      renderGuide();
       reveal($("file-detail"));
       announce(`Đã chọn ${file.name}, ${previewSize.width} × ${previewSize.height} điểm ảnh. Sẵn sàng chạy thí nghiệm.`);
       return true;
@@ -465,8 +601,8 @@
       point.append(svgEl("circle", { class: "hit", cx: x(index), cy: y(variant.score), r: 14, fill: "transparent" }));
       point.append(svgEl("circle", { class: "dot", cx: x(index), cy: y(variant.score), r: variant.id === state.selected ? 6 : 4, fill: variant.id === state.selected ? "#1d807f" : "#fffefa", stroke: "#1d807f", "stroke-width": 2 }));
       point.append(svgEl("title", {}, label));
-      point.addEventListener("click", () => selectVariant(variant.id));
-      point.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectVariant(variant.id); } });
+      point.addEventListener("click", () => reviewPreview(variant.id));
+      point.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); reviewPreview(variant.id); } });
       svg.append(point);
     });
     $("score-chart").replaceChildren(svg);
@@ -486,7 +622,7 @@
     }
     $("result-dimensions").textContent = `${dimensions(variant)} PX`;
     $("result-size").textContent = bytesText(variant.bytes);
-    $("result-label").textContent = variantName(variant);
+    $("result-label").textContent = ForensicsGuide.previewLabel(variant);
     $("result-note").textContent = numeric(variant.score) ? `Điểm AI ${scoreText(variant.score)}` : "";
     for (const row of $("measurements-body").rows) row.classList.toggle("selected", row.dataset.variant === id);
     renderChart();
@@ -499,7 +635,7 @@
       const row = el("tr"); row.dataset.variant = variant.id;
       const first = el("td");
       const button = el("button", variantName(variant), "row-variant-button"); button.type = "button";
-      button.addEventListener("click", () => selectVariant(variant.id)); first.append(button);
+      button.addEventListener("click", () => reviewPreview(variant.id)); first.append(button);
       let psnr = "Chưa có dữ liệu";
       if (numeric(variant.psnr_db)) psnr = `${numberText(variant.psnr_db, 2)} dB`;
       else if (variant.mse === 0) psnr = "∞ (trùng tham chiếu)";
@@ -531,13 +667,14 @@
     const variants = report.variants || [];
     if (!variants.length) throw new Error("Máy chủ không trả về ảnh biến thể.");
     state.report = report;
-    $("preview-tag").textContent = `HOÀN TẤT ${Math.max(0, variants.length - 1)} VÒNG`;
+    const scores = variants.map((v) => v.score).filter((v) => numeric(v) && v >= 0 && v <= 1);
+    $("preview-tag").textContent = rules.completionTag(Math.max(0, variants.length - 1), scores.length, variants.length);
+    $("trajectory-title").textContent = rules.trajectoryTitle(report.config?.mode);
     $("original-dimensions").textContent = dimensions(report.image);
     $("original-format").textContent = (report.image?.format || "ẢNH NGUỒN").toUpperCase();
     $("original-size").textContent = bytesText(report.image?.bytes);
     $("variant-select").replaceChildren(...variants.map((variant) => { const option = el("option", variantName(variant)); option.value = variant.id; return option; }));
     $("variant-select").disabled = false;
-    const scores = variants.map((v) => v.score).filter(numeric);
     const baseline = variants.find((v) => v.id === "original" || v.round === 0) || variants[0];
     $("metric-original").textContent = numeric(baseline.score) ? scoreText(baseline.score) : "—";
     $("metric-original-help").textContent = numeric(baseline.score) ? "Phản hồi mô hình · từ 0 đến 1" : "Mô hình chưa khả dụng";
@@ -562,10 +699,11 @@
         : "Bước bổ sung: kiểm tra dấu hiệu chỉnh sửa cục bộ và độ tin cậy của bản đồ trên ảnh gốc.";
     } else if (report.regional?.message) $("regional-status").textContent = translate(report.regional.message);
     if (!scores.length && report.detector?.reason) $("bfree-status").textContent = `${translate(report.detector.reason)} Đã ghi lại kết quả biến đổi ảnh.`;
-    if (report.regional?.heatmap_url || report.regional?.reliability_url) renderRegionalResult(report.regional);
+    if (report.regional?.heatmap_url || report.regional?.reliability_url || report.regional?.overlay_url) renderRegionalResult(report.regional);
     updateRegionalButton();
     reveal($("fixed-evidence-panel"));
     reveal($("measurements-panel"), 60);
+    renderGuide();
     announce(`Thí nghiệm hoàn tất. Đã ghi ${variants.length} phiên bản ảnh và ${scores.length} điểm số từ mô hình.`);
   }
 
@@ -591,6 +729,7 @@
     $("regional-results").hidden = !figures.length && !warnings.length && !numeric(result.score);
     if (figures.length) $("step-region").classList.add("current");
     reveal($("regional-results"));
+    renderGuide();
   }
 
   function evidenceLinks(ids) {
@@ -613,7 +752,7 @@
     if (preview) { setPreview($("result-image"), preview); $("result-image").alt = `${item.id}: ${toolName(item.tool)}, ${dimensions(item)} điểm ảnh`; }
     $("result-dimensions").textContent = `${dimensions(item)} PX`;
     $("result-size").textContent = `${toolName(item.tool)}`;
-    $("result-label").textContent = item.id;
+    $("result-label").textContent = ForensicsGuide.previewLabel(item);
     $("result-note").textContent = numeric(item.score) ? `Điểm ${scoreText(item.score)}` : "";
     document.querySelectorAll(".evidence-card").forEach((card) => { card.classList.toggle("selected", card.dataset.evidence === id); });
     viewer.refresh();
@@ -642,7 +781,7 @@
       if (item.error) card.append(el("p", errorText(item.error), "evidence-error"));
       if (sameOriginURL(item.preview_url)) {
         const button = el("button", "Đối chiếu ảnh ↗", "evidence-preview"); button.type = "button";
-        button.addEventListener("click", () => { selectAgentObservation(item.id); scrollTo($("preview-title"), "start"); }); card.append(button);
+        button.addEventListener("click", () => { reviewPreview(item.id); scrollTo($("preview-title"), "start"); }); card.append(button);
       }
       return card;
     });
@@ -710,8 +849,7 @@
     if (summary) {
       $("agent-summary-title").textContent = translate(summary.title) || "Kết quả đã ghi nhận";
       $("agent-facts").replaceChildren(...(summary.facts || []).map((fact) => { const paragraph = el("p", translate(fact.text)); paragraph.append(evidenceLinks(fact.evidence_ids)); return paragraph; }));
-      const reasons = { budget_exhausted: "Đã dùng hết số lượt gọi mô hình cho phép.", planner_finished: "AI đã chọn kết thúc phân tích.", cancelled: "Đã dừng theo yêu cầu của bạn.", planner_failed: "Mô hình chọn phép thử gặp lỗi; các kết quả đã có vẫn được giữ lại.", original_detector_failed: "Phép đo ảnh gốc gặp lỗi." };
-      $("agent-stop").textContent = reasons[summary.stop_reason] || `Đã dừng: ${summary.stop_reason || "chưa rõ lý do"}.`;
+      $("agent-stop").textContent = rules.stopReasonText(summary.stop_reason);
       $("agent-warnings").replaceChildren(...(summary.warnings || []).map((warning) => el("li", translate(warning))));
     }
     const error = report.error || report.planner_error;
@@ -721,12 +859,15 @@
       const url = sameOriginURL(value); $(id).hidden = !url; if (url) $(id).href = url;
     }
     if (observations.length) $("step-measure").classList.add("current");
+    renderGuide();
   }
 
   async function pollInvestigation() {
     if (!state.activeJob || state.monitoring) return;
     const job = state.activeJob;
     state.monitoring = true;
+    state.guide.disconnected = false;
+    renderGuide();
     $("resume-investigation").hidden = true;
     showError("");
     let previousStep = "";
@@ -750,6 +891,8 @@
     } catch (error) {
       if (state.activeJob === job) {
         showError(`Tạm dừng theo dõi: ${errorText(error.message)} Máy chủ có thể vẫn đang xử lý. Hãy kết nối lại để xem kết quả hiện tại.`);
+        state.guide.disconnected = true;
+        renderGuide();
         $("resume-investigation").hidden = false;
         $("agent-current-step").textContent = "Kết nối bị gián đoạn. Cần kết nối lại để biết trạng thái phân tích hiện tại.";
         announce("Tạm dừng theo dõi. Hãy kết nối lại để kiểm tra phiên đang chạy.");
@@ -760,7 +903,9 @@
   async function startInvestigation() {
     if (!state.base64 || state.busy) return;
     const generation = state.generation;
+    state.guide = { sourceKey: null, selectedId: null, follow: true, running: false, disconnected: false };
     state.investigation = null; state.agentSelected = null; state.ledgerKey = null; state.cancelRequested = false;
+    state.failed = null;
     clearResults(true);
     setBusy(true, "investigation"); showError("");
     renderInvestigation({ status: "running", current_step: "Đang gửi ảnh tới máy chủ trên máy này", config: { budget: Number($("agent-budget").value) }, observations: [], decisions: [] });
@@ -788,6 +933,7 @@
       await request(`/api/investigations/${job.id}/cancel`, {});
       if (state.activeJob !== job) return;
       state.cancelRequested = true;
+      renderGuide();
       $("cancel-investigation").textContent = "Đã yêu cầu dừng";
       $("agent-current-step").textContent = "Đã yêu cầu dừng. Hệ thống sẽ hoàn tất lượt đang chạy trước khi dừng.";
       announce("Đã yêu cầu dừng. Hệ thống sẽ hoàn tất lượt đang chạy trước khi dừng.");
@@ -798,10 +944,11 @@
   async function loadInvestigation(runID) {
     if (!/^[a-f0-9]{32}$/.test(runID)) { showError("Mã phiên phân tích đã lưu không hợp lệ."); return; }
     form.elements.workflow_mode.value = "adaptive"; updateApproach();
-    setBusy(true, "investigation");
+    setBusy(true, "saved");
     $("run-label").textContent = "Đang mở phiên phân tích…";
     try {
       const report = await request(`/api/investigations/${runID}`);
+      state.savedRuns.add(runID);
       renderInvestigation(report);
       const preview = sameOriginURL(report.preview_url);
       if (preview) {
@@ -843,6 +990,7 @@
       if (numeric(config.scale)) $("scale").value = String(config.scale * 100);
       if (numeric(config.threshold)) $("threshold").value = String(config.threshold * 100);
       if (["cumulative", "independent"].includes(config.mode)) form.elements.mode.value = config.mode;
+      state.savedRuns.add(example.report.run_id);
       renderReport(example.report);
       $("preview-tag").textContent = "KẾT QUẢ MẪU ĐÃ LƯU";
       if (!state.status?.bfree?.available) $("bfree-status").textContent = "Đang xem điểm B-Free đã lưu từ lần chạy trước. B-Free trên máy này chưa cấu hình, nên lần chạy mới sẽ chỉ có phép đo ảnh.";
@@ -857,13 +1005,14 @@
     if (adaptiveMode()) return startInvestigation();
     if (!state.base64 || state.busy) return;
     setInvestigationURL(null);
-    showError(""); setBusy(true);
+    showError(""); clearResults(); setBusy(true);
     announce("Đã bắt đầu thí nghiệm. Đang tạo biến thể và thu thập phản hồi mô hình.");
     const payload = { filename: state.file.name, image_base64: state.base64, ...readConfig() };
     try {
       const report = await request("/api/analyze", payload);
       renderReport(report);
     } catch (error) {
+      state.failed = { run_id: `failed-${state.generation}`, variants: [], config: payload };
       showError(error.message || "Thí nghiệm gặp lỗi. Hãy kiểm tra máy chủ trên máy rồi thử lại.");
       announce("Không thể hoàn tất thí nghiệm.");
     } finally { setBusy(false); }
@@ -1061,12 +1210,18 @@
   guide.addEventListener("click", (event) => { if (event.target === guide) guide.close(); });
   document.querySelectorAll("[data-guide]").forEach((button) => button.addEventListener("click", () => openGuide(button.dataset.guide)));
 
+  $("guide-prev").addEventListener("click", () => stepGuide(-1));
+  $("guide-next").addEventListener("click", () => stepGuide(1));
+  $("guide-replay").addEventListener("click", () => { const first = $("guide-stages").querySelector("button"); if (first) chooseGuideStep(first.dataset.guideStep); });
+  $("guide-follow").addEventListener("click", () => { state.guide.follow = true; renderGuide(); });
+  $("research-details").addEventListener("toggle", () => { if ($("research-details").open && state.report && !adaptiveMode()) renderChart(); });
+  document.addEventListener("click", (event) => { if (event.target.closest?.(".evidence-links a")) $("research-details").open = true; });
   form.addEventListener("submit", runExperiment);
   form.addEventListener("input", (event) => { if (event.target.id !== "image-file") updateConfig(); });
   form.addEventListener("change", (event) => { if (event.target.name === "workflow_mode") updateApproach(); else if (event.target.id !== "image-file") updateConfig(); });
   $("image-file").addEventListener("change", (event) => chooseFile(event.target.files[0]));
   $("clear-file").addEventListener("click", clearFile);
-  $("variant-select").addEventListener("change", (event) => adaptiveMode() ? selectAgentObservation(event.target.value) : selectVariant(event.target.value));
+  $("variant-select").addEventListener("change", (event) => reviewPreview(event.target.value));
   $("cancel-investigation").addEventListener("click", cancelInvestigation);
   $("resume-investigation").addEventListener("click", pollInvestigation);
   $("regional-button").addEventListener("click", runRegional);

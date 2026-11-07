@@ -8,27 +8,102 @@ import json
 import mimetypes
 import os
 import re
-import shutil
 import threading
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import NamedTuple
 
 from .pipeline import MAX_BYTES, analyze, write_exports, decode_image
 from .detectors import choose_detector, run_trufor
+from .regional import publish_regional
 from .agent import investigate, validate_agent_config, save_investigation
 from .planner import LocalPlanner
 
 ROOT = Path(__file__).resolve().parent.parent
 RUNS = ROOT / "output" / "runs"
+EXAMPLE_ROOT = ROOT / "output" / "model-verification"
 WORK_LOCK = threading.Lock()
 JOBS = {}
 JOBS_LOCK = threading.Lock()
 
+# Explicit types for served files. mimetypes consults the Windows registry, where
+# .js can map to text/plain, and X-Content-Type-Options: nosniff would then make
+# the browser refuse to execute the application scripts.
+STATIC_TYPES = {
+    ".html": "text/html; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+}
+
+
+def content_type(path):
+    """Return a deterministic Content-Type for a served file."""
+    suffix = Path(path).suffix.lower()
+    return STATIC_TYPES.get(suffix) or mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+
+
+class ExampleUnavailable(RuntimeError):
+    """The committed demo run is missing or its pointer is unreadable."""
+
+
+class RunLocation(NamedTuple):
+    directory: Path
+    writable: bool
+
+
+def run_location(run_id):
+    """Resolve a run directory. Only output/runs is writable; committed artifacts are read-only."""
+    local = RUNS / run_id
+    if local.is_dir():
+        return RunLocation(local, True)
+    committed = EXAMPLE_ROOT / run_id
+    if committed.is_dir():
+        return RunLocation(committed, False)
+    return None
+
+
+def load_example():
+    pointer = ROOT / "output" / "verified-example.json"
+    if not pointer.is_file():
+        raise ExampleUnavailable("The recorded example is not installed.")
+    try:
+        run_id = json.loads(pointer.read_text()).get("run_id")
+    except (ValueError, AttributeError):
+        raise ExampleUnavailable("The recorded example pointer is invalid.") from None
+    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{32}", run_id):
+        raise ExampleUnavailable("The recorded example pointer is invalid.")
+    location = run_location(run_id)
+    if location is None:
+        raise ExampleUnavailable("The recorded example is not installed.")
+    report_path = location.directory / "report.json"
+    source_path = location.directory / "source.bin"
+    if not report_path.is_file() or not source_path.is_file():
+        raise ExampleUnavailable("The recorded example is not installed.")
+    report = json.loads(report_path.read_text())
+    return {"report": report, "filename": report["image"]["name"],
+            "image_base64": base64.b64encode(source_path.read_bytes()).decode("ascii")}
+
+
+def trufor_remote_settings():
+    return (os.environ.get("TRUFOR_REMOTE_URL", ""), os.environ.get("TRUFOR_REMOTE_SECRET", ""),
+            os.environ.get("TRUFOR_REMOTE_TIMEOUT", ""))
+
 
 def trufor_status():
+    url, secret, timeout = trufor_remote_settings()
+    if url:
+        from .remote_regional import choose_remote_regional
+        runner = choose_remote_regional(url, secret, timeout)
+        return {"available": runner.available, "reason": runner.reason}
     repo = os.environ.get("TRUFOR_REPO", "")
-    configured = bool(repo and (Path(repo) / "TruFor_train_test" / "test.py").is_file())
+    root = Path(repo).expanduser() if repo else None
+    configured = bool(root and ((root / "TruFor_train_test" / "test.py").is_file() or (root / "test.py").is_file()))
     return {"available": configured, "reason": "Configured; model dependencies and weights are checked when scanning." if configured else "Set TRUFOR_REPO and install its pretrained model to enable regional evidence."}
 
 
@@ -78,24 +153,21 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(report)
             return self.send_json({"error": "Investigation not found."}, 404)
         if path == "/api/example":
-            pointer = ROOT / "output" / "verified-example.json"
-            if not pointer.is_file():
-                return self.send_json({"error": "The recorded example is not installed."}, 404)
-            run_id = json.loads(pointer.read_text())["run_id"]
-            if not re.fullmatch(r"[a-f0-9]{32}", run_id):
-                return self.send_json({"error": "Invalid recorded example."}, 500)
-            directory = RUNS / run_id
-            report = json.loads((directory / "report.json").read_text())
-            return self.send_json({"report": report, "filename": report["image"]["name"],
-                                   "image_base64": base64.b64encode((directory / "source.bin").read_bytes()).decode("ascii")})
+            try:
+                return self.send_json(load_example())
+            except ExampleUnavailable as exc:
+                return self.send_json({"error": str(exc)}, 404)
         if path.startswith("/runs/"):
             if not re.fullmatch(r"/runs/[a-f0-9]{32}/[A-Za-z0-9_.-]+", path):
                 return self.send_json({"error": "Not found"}, 404)
-            filename = path.rsplit("/", 1)[-1]
+            run_id, filename = path.removeprefix("/runs/").split("/", 1)
             if Path(filename).suffix not in {".png", ".jpg", ".json", ".csv"}:
                 return self.send_json({"error": "Not found"}, 404)
-            file = RUNS / path.removeprefix("/runs/")
-        elif path in {"/", "/index.html", "/style.css", "/app.js"}:
+            location = run_location(run_id)
+            if location is None:
+                return self.send_json({"error": "Not found"}, 404)
+            file = location.directory / filename
+        elif path in {"/", "/index.html", "/style.css", "/app.js", "/rules.js", "/guide.js"}:
             file = ROOT / "web" / ("index.html" if path == "/" else path.lstrip("/"))
         else:
             return self.send_json({"error": "Not found"}, 404)
@@ -103,7 +175,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"error": "Not found"}, 404)
         content = file.read_bytes()
         self.send_response(200)
-        self.send_header("Content-Type", mimetypes.guess_type(str(file))[0] or "application/octet-stream")
+        self.send_header("Content-Type", content_type(file))
         self.send_header("Content-Length", str(len(content)))
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Cache-Control", "no-store")
@@ -158,6 +230,8 @@ class Handler(BaseHTTPRequestHandler):
             WORK_LOCK.release()
 
     def start_investigation(self, payload):
+        if payload.get("threshold", .5) != .5:
+            raise ValueError("The adaptive investigation uses a fixed 0.5 threshold. Remove the threshold field or set it to 0.5.")
         config = validate_agent_config(payload)
         raw = payload.get("image_base64", "")
         if not isinstance(raw, str):
@@ -206,9 +280,12 @@ class Handler(BaseHTTPRequestHandler):
         run_id = str(payload.get("run_id", ""))
         if not re.fullmatch(r"[a-f0-9]{32}", run_id):
             raise ValueError("Invalid analysis ID.")
-        directory = RUNS / run_id
-        if not (directory / "report.json").is_file():
+        location = run_location(run_id)
+        if location is None or not (location.directory / "report.json").is_file():
             return self.send_json({"error": "Analysis not found."}, 404)
+        if not location.writable:
+            return self.send_json({"error": "The recorded example is read-only. Analyze your own image to run a regional scan."}, 409)
+        directory = location.directory
         report = json.loads((directory / "report.json").read_text())
         if not trufor_status()["available"]:
             result = {"status": "unavailable", "message": trufor_status()["reason"], "warnings": []}
@@ -216,29 +293,28 @@ class Handler(BaseHTTPRequestHandler):
             write_exports(report, directory)
             return self.send_json(result)
         try:
-            result = run_trufor(directory / "original.png", directory,
-                                os.environ["TRUFOR_REPO"],
-                                os.environ.get("TRUFOR_PYTHON", "python3"),
-                                os.environ.get("TRUFOR_DEVICE", "cpu"))
+            url, secret, timeout = trufor_remote_settings()
+            if url:
+                from .remote_regional import choose_remote_regional
+                runner = choose_remote_regional(url, secret, timeout)
+                if not runner.available:
+                    raise RuntimeError(runner.reason)
+                result = runner.run(directory / "original.png", directory)
+            else:
+                result = run_trufor(directory / "original.png", directory,
+                                    os.environ["TRUFOR_REPO"],
+                                    os.environ.get("TRUFOR_PYTHON", "python3"),
+                                    os.environ.get("TRUFOR_DEVICE", "cpu"))
         except Exception as exc:
-            result = {"status": "error", "message": f"Regional inference failed: {type(exc).__name__}: {exc}",
+            detail = str(exc).replace(str(directory), "the run directory")
+            result = {"status": "error", "message": f"Regional inference failed: {type(exc).__name__}: {detail}",
                       "warnings": ["No valid regional evidence was produced."]}
             report["regional"] = result
             write_exports(report, directory)
             return self.send_json(result)
-        # Adapter returns numeric evidence and local output paths. Only generated images are served.
-        for key in ["heatmap", "reliability", "overlay"]:
-            local = result.get(key + "_path")
-            if local:
-                p = Path(local).resolve()
-                if not p.is_relative_to(directory.resolve()) or p.suffix.lower() != ".png" or not p.is_file():
-                    raise ValueError("Regional adapter returned an unexpected artifact path.")
-                published = directory / f"regional-{key}.png"
-                shutil.copyfile(p, published)
-                result[key + "_url"] = f"/runs/{run_id}/{published.name}"
-        report["regional"] = result
+        report["regional"] = publish_regional(result, directory, run_id, "regional-")
         write_exports(report, directory)
-        return self.send_json(result)
+        return self.send_json(report["regional"])
 
 
 def main():
