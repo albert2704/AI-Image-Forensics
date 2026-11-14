@@ -2,7 +2,7 @@
 
 **Tiếng Việt (mặc định)** · [English](README.en.md)
 
-**Nén hoặc thu nhỏ ảnh, mô hình phát hiện ảnh AI có đổi ý?**
+**Nén hoặc thu nhỏ ảnh, còn phát hiện được ảnh AI không?**
 
 AI Image Forensics Assistant là nguyên mẫu nghiên cứu chạy trên máy cá nhân, giúp so sánh phản hồi của mô hình trên ảnh gốc và các bản sao đã nén JPEG hoặc đổi kích thước. Giao diện tiếng Việt dẫn giải từng bước, hiển thị bằng chứng đo được và cho phép xuất dữ liệu để kiểm tra lại.
 

@@ -107,7 +107,7 @@
       const comparison = baselineValid ? `Điểm đổi từ ${format(baseline.score)} thành ${format(item.score)}; ${changed ? "mô hình đã đổi nhóm đánh giá" : "mô hình vẫn giữ cùng nhóm đánh giá"}.` : `Bản sao được ${format(item.score)}; thiếu điểm gốc để so sánh.`;
       steps.push(card(item.id, "perturbation", operations.name, `${comparison} ${history}`, {
         ...common, score: item.score, decision: currentDecision, changed,
-        lesson: { purpose: "Ảnh khi chia sẻ có thể bị nén hoặc đổi kích thước; ta thử tác động đó trên một bản sao.", action: operations.details.length ? operations.details.join(". ") + "." : "Đã xử lý bản sao theo điều kiện của lần chạy này.", meaning: !baselineValid ? "Cần điểm gốc hợp lệ để biết mô hình có đổi câu trả lời." : changed ? "Ảnh vẫn có cùng nguồn gốc; câu trả lời của mô hình đã đổi." : "Ảnh vẫn có cùng nguồn gốc; mô hình giữ cùng nhóm trong phép thử này." },
+        lesson: { purpose: "Ảnh khi chia sẻ có thể bị nén hoặc đổi kích thước; ta thử tác động đó trên một bản sao.", action: operations.details.length ? operations.details.join(". ") + "." : "Đã xử lý bản sao theo điều kiện của lần chạy này.", meaning: !baselineValid ? "Cần điểm gốc hợp lệ để biết mô hình còn phát hiện được ảnh AI không." : changed ? "Ảnh vẫn có cùng nguồn gốc; câu trả lời của mô hình đã đổi." : "Ảnh vẫn có cùng nguồn gốc; mô hình giữ cùng nhóm trong phép thử này." },
         transformation: { ...operations, from: dimensions(source), to: dimensions(item), history },
       }));
     }
@@ -150,7 +150,231 @@
     const jpeg = operations.some((operation) => operation.type === "jpeg");
     return resize && jpeg ? "Bản đổi cỡ + nén" : resize ? "Bản đổi kích thước" : jpeg ? "Bản nén JPEG" : "Bản sao đã xử lý";
   }
-  const api = { build, previewLabel };
+  const valid = (item) => !item?.error && typeof item?.score === "number" && Number.isFinite(item.score) && item.score >= 0 && item.score <= 1;
+  const isRegional = (item) => item?.tool === "trufor" || item?.score_kind === "local_manipulation" || item?.kind === "regional";
+  const percent = (value) => Math.round((Number.isFinite(value) ? value : 0) * 100);
+  const psnrText = (value) => new Intl.NumberFormat("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+  const quality = (value) => Number.isFinite(value) ? `Q${value}` : "";
+  const toolLabels = { "jpeg_q85_r1": "Nén một lần", "jpeg_q85_r3": "Nén ba lần", "resize_s0.9_r1": "Thu nhỏ", "resize_s0.9_r3": "Thu nhỏ hai lần", "combined_q95_s0.9_r3": "Thu nhỏ + nén" };
+  const toolShorts = { baseline: "Gốc", "jpeg_q85_r1": "JPEG", "jpeg_q85_r3": "JPEG×3", "resize_s0.9_r1": "Thu nhỏ", "resize_s0.9_r3": "Thu nhỏ×2", "combined_q95_s0.9_r3": "Kết hợp" };
+
+  function configChip(config = {}, compact = false) {
+    if (config.workflow === "adaptive") {
+      const budget = Number.isFinite(config.budget) ? config.budget : 4;
+      return compact ? `Qwen chọn phép thử · ${budget} lượt` : `Qwen chọn phép thử · tối đa ${budget} lượt`;
+    }
+    const rounds = Number.isFinite(config.rounds) ? config.rounds : 3;
+    const operation = config.operation === "jpeg" ? `Chỉ nén JPEG ${quality(config.quality)}`
+      : config.operation === "resize" ? `Chỉ thu nhỏ ${percent(config.scale)}%`
+        : `Thu nhỏ ${percent(config.scale)}% + JPEG ${quality(config.quality)}`;
+    const mode = config.mode === "independent" ? "đối chứng một lượt" : "nối tiếp";
+    return compact ? `${operation} · ${rounds} vòng` : `${operation} · ${rounds} vòng ${mode}`;
+  }
+
+  function plannedStops(config = {}) {
+    const rounds = Number.isFinite(config.rounds) ? config.rounds : 3;
+    return ["original", ...Array.from({ length: Math.max(0, rounds) }, (_, index) => `round-${index + 1}`)];
+  }
+
+  function trackCounts(items = [], threshold = .5) {
+    let weak = 0, strong = 0;
+    for (const item of items) {
+      if (isRegional(item) || item.kind === "summary" || !valid(item)) continue;
+      if (item.score > threshold) strong++;
+      else weak++;
+    }
+    return { weak, strong };
+  }
+
+  function operationLabel(item = {}, source = null) {
+    const operations = Array.isArray(item.operations) ? item.operations : [];
+    const resizing = operations.filter((operation) => operation.type === "resize");
+    const encoding = operations.filter((operation) => operation.type === "jpeg");
+    const qualities = [...new Set(encoding.map((operation) => operation.quality).filter(Number.isFinite))];
+    const name = resizing.length && encoding.length ? "Thu nhỏ + nén JPEG" : resizing.length ? "Thu nhỏ" : encoding.length ? "Nén JPEG" : "Xử lý bản sao";
+    const detail = [];
+    if (Number.isFinite(item?.width)) detail.push(Number.isFinite(source?.width) ? `${source.width}² → ${item.width}²` : `${item.width}²`);
+    if (qualities.length) detail.push(`JPEG ${qualities.map((value) => `Q${value}`).join("/")}`);
+    const short = [];
+    if (resizing.length) short.push(Number.isFinite(item?.width) ? `thu nhỏ ${item.width}²` : "thu nhỏ");
+    if (encoding.length) short.push(qualities.length ? `JPEG Q${qualities.join("/")}` : "JPEG");
+    if (!short.length) short.push("bản sao");
+    return { name, short: short.join(" + "), detail: detail.join(" · "), dimensions: Number.isFinite(item?.width) ? item.width : null, quality: qualities.length ? qualities[0] : null, jpeg: encoding.length > 0 };
+  }
+  function answerFor(items = [], threshold = .5, mode = "fixed", status = "complete", reason = "") {
+    const adaptive = mode === "adaptive";
+    const noun = adaptive ? "phép thử" : "bản sao";
+    const caution = "Điểm số chưa phải kết luận về nguồn gốc ảnh.";
+    const prefix = status === "cancelled" ? "Phiên đã dừng. " : status === "error" ? "Phiên gặp lỗi. " : status === "partial" ? "Kết quả một phần. " : "";
+    const lead = reason ? `${reason} ` : "";
+    const scored = items.filter((item) => !isRegional(item) && item.kind !== "summary" && valid(item));
+    const baseline = scored.find((item) => item.kind === "baseline" || item.id === "original" || item.tool === "baseline" || item.round === 0);
+    if (!baseline) {
+      return { tone: status === "error" ? "danger" : "warn", title: `${prefix}Chưa có điểm ảnh gốc.`, detail: `${lead}Chưa thể so sánh vì thiếu điểm hợp lệ của ảnh gốc. ${caution}` };
+    }
+    const copies = scored.filter((item) => item !== baseline);
+    if (!copies.length) {
+      return { tone: "warn", title: `${prefix}Chưa đủ ${noun} để so sánh.`, detail: `${lead}Ảnh gốc được ${format(baseline.score)}; cần ít nhất một ${noun} có điểm hợp lệ. ${caution}` };
+    }
+    const changed = copies.filter((item) => typeof item.changed === "boolean" ? item.changed : (item.score > threshold) !== (baseline.score > threshold));
+    const flips = changed.length, total = copies.length;
+    let tone = "info";
+    let title;
+    if (!flips) title = `Không. Cả ${total} ${noun} giữ nguyên nhóm.`;
+    else if (flips === total) {
+      tone = "warn";
+      title = baseline.score > threshold ? `Có. Cả ${total} ${noun} xuống dưới ngưỡng.` : `Có. Cả ${total} ${noun} vượt ngưỡng.`;
+    } else {
+      tone = "warn";
+      title = `Có. ${flips} trong ${total} ${noun} đổi nhóm.`;
+    }
+    let detail;
+    if (flips) {
+      const first = changed[0];
+      const rising = first.score > baseline.score;
+      const when = adaptive ? `Ở phép thử «${first.label || "đã chọn"}», ` : `Sau ${Number.isFinite(first.round) ? first.round : 1} vòng, `;
+      detail = `${when}điểm ${rising ? "tăng" : "rơi"} từ ${format(baseline.score)} ${rising ? "lên" : "xuống"} ${format(first.score)}.`;
+    } else {
+      const scores = scored.map((item) => item.score);
+      detail = `Điểm cao nhất ${format(Math.max(...scores))}, thấp nhất ${format(Math.min(...scores))}; mô hình giữ nguyên nhóm.`;
+    }
+    return { tone, title: `${prefix}${title}`, detail: `${lead}${detail} ${caution}` };
+  }
+
+  function lessonFor(step, eyebrow, title, detail, tone) {
+    if (!step?.lesson && !title) return null;
+    return {
+      eyebrow, title: title || step?.title || "",
+      body: step?.lesson ? [
+        { label: "Ta làm gì:", text: step.lesson.action },
+        { label: "Nghĩa là:", text: step.lesson.meaning },
+      ] : [],
+      detail: detail || null, tone: tone || "info",
+    };
+  }
+  const stop = (fields) => ({ id: null, kind: "copy", label: "", short: "", score: null, width: null, height: null, thumb: null, changed: false, state: "pending", lesson: null, ...fields });
+  const plannedFixedStops = (config) => plannedStops(config).map((id, index) => stop({
+    id, kind: index === 0 ? "baseline" : "copy", label: index === 0 ? "Ảnh gốc" : `Vòng ${index}`, short: index === 0 ? "Gốc" : `V${index}`,
+  }));
+
+  // One ordered stop list drives the track, the stage, the rail and prev/next.
+  function stopModel(input = {}) {
+    const { report = null, investigation = null, config = {}, adaptive = false, busy = false, cancelRequested = false, disconnected = false, saved = false, availability, selectedId = null, failed = false } = input;
+    const source = adaptive ? investigation : report;
+    const threshold = Number.isFinite(source?.config?.threshold) ? source.config.threshold : adaptive ? .5 : Number.isFinite(config.threshold) ? config.threshold : .5;
+    const guide = build({ report: source, adaptive, hasImage: !!input.hasFile, busy, saved, availability, disconnected, cancelRequested });
+    const steps = new Map(guide.steps.map((step) => [step.id, step]));
+    const stops = [];
+
+    if (adaptive) {
+      const observations = investigation?.observations || [];
+      const measured = observations.filter((item) => !isRegional(item));
+      const baseline = measured.find((item) => item.tool === "baseline");
+      const baselineValid = valid(baseline);
+      measured.forEach((item, index) => {
+        const isBaseline = item === baseline;
+        const validItem = valid(item);
+        const score = validItem ? item.score : null;
+        const changed = !isBaseline && validItem && baselineValid && (score > threshold) !== (baseline.score > threshold);
+        const label = isBaseline ? "Ảnh gốc" : toolLabels[item.tool] || "Phép thử";
+        const step = steps.get(item.id);
+        const detail = Number.isFinite(item.width) ? `${item.width}²${Number.isFinite(item.psnr_db) ? ` · PSNR ${psnrText(item.psnr_db)} dB` : ""}` : null;
+        stops.push(stop({
+          id: item.id, kind: isBaseline ? "baseline" : "copy", label, short: isBaseline ? "Gốc" : toolShorts[item.tool] || "Thử", score,
+          width: Number.isFinite(item.width) ? item.width : null, height: Number.isFinite(item.height) ? item.height : null,
+          thumb: item.preview_url || null, changed, state: validItem ? "measured" : "failed",
+          lesson: lessonFor(step, isBaseline ? "ẢNH GỐC" : `PHÉP THỬ · ${label.toUpperCase()}`, isBaseline ? null : changed ? "Phép thử này đã làm mô hình đổi nhóm đánh giá." : "Phép thử này giữ nguyên nhóm đánh giá.", detail, changed ? "warn" : "info"),
+          error: item.error || null,
+        }));
+      });
+      if (investigation?.status === "running") {
+        const action = /^Running (\S+)$/.exec(investigation.current_step || "")?.[1];
+        if (action && action !== "finish" && action !== "trufor" && !observations.some((item) => item.tool === action)) {
+          stops.push(stop({ id: `pending-${action}`, label: toolLabels[action] || "Phép thử", short: toolShorts[action] || "Thử" }));
+        }
+        const budget = Number.isFinite(investigation.config?.budget) ? investigation.config.budget : Number.isFinite(config.budget) ? config.budget : 4;
+        for (let index = observations.length + (stops.some((item) => item.id.startsWith("pending-")) ? 1 : 0); index < budget; index++) {
+          stops.push(stop({ id: `slot-${index}`, label: "Chưa chọn", short: "Chờ" }));
+        }
+      }
+    } else if (report?.variants?.length) {
+      const variants = report.variants;
+      const baseline = variants.find((item) => item.id === "original" || item.round === 0) || variants[0];
+      const baselineValid = valid(baseline);
+      const chainedMode = report.config?.mode !== "independent";
+      variants.forEach((item, index) => {
+        const isBaseline = item === baseline;
+        const validItem = valid(item);
+        const score = validItem ? item.score : null;
+        const previous = variants[index - 1];
+        const sourceItem = chainedMode && !isBaseline && previous && previous.round > 0 ? previous : baseline;
+        const operation = isBaseline ? null : operationLabel(item, sourceItem);
+        const step = steps.get(item.id);
+        const changed = !isBaseline && validItem && baselineValid && (score > threshold) !== (baseline.score > threshold);
+        const dimensions = isBaseline ? Number.isFinite(item.width) ? `${item.width}²` : null : Number.isFinite(item.width) && Number.isFinite(sourceItem?.width) ? `${sourceItem.width}² → ${item.width}²` : Number.isFinite(item.width) ? `${item.width}²` : null;
+        const psnr = Number.isFinite(item.psnr_db) ? `PSNR ${psnrText(item.psnr_db)} dB` : item.mse === 0 ? "PSNR ∞" : null;
+        stops.push(stop({
+          id: item.id, kind: isBaseline ? "baseline" : "copy", label: isBaseline ? "Ảnh gốc" : `Vòng ${item.round ?? index}`,
+          short: isBaseline ? "Gốc" : `V${item.round ?? index}`, score,
+          width: Number.isFinite(item.width) ? item.width : null, height: Number.isFinite(item.height) ? item.height : null,
+          thumb: item.preview_url || null, changed, state: validItem ? "measured" : "failed",
+          lesson: lessonFor(step,
+            isBaseline ? "ẢNH GỐC" : `VÒNG ${item.round ?? index} · ${(operation?.name || "Bản sao").toUpperCase()}`,
+            isBaseline ? null : changed ? (index === 1 ? `${operation?.name || "Bản sao"} đã đủ để mô hình đổi nhóm đánh giá.` : `Vòng ${item.round ?? index} đã làm mô hình đổi nhóm đánh giá.`) : "Bản sao này giữ nguyên nhóm đánh giá.",
+            [dimensions, psnr].filter(Boolean).join(" · ") || null, changed ? "warn" : "info"),
+          error: item.error || null,
+        }));
+      });
+    } else {
+      stops.push(...plannedFixedStops(config));
+    }
+
+    const regionalResult = adaptive ? (investigation?.observations || []).find(isRegional) : report?.regional?.status === "complete" || report?.regional?.status === "error" ? report.regional : null;
+    if (regionalResult) {
+      const maps = regionalResult.overlay_url || regionalResult.heatmap_url || regionalResult.reliability_url;
+      const regionalStep = adaptive ? steps.get(regionalResult.id) : steps.get("regional");
+      const score = Number.isFinite(regionalResult.score) ? regionalResult.score : null;
+      stops.push(stop({
+        id: "regional", kind: "regional", label: "Vùng chỉnh sửa", short: "TruFor", score, thumb: maps || null,
+        state: score === null && !maps ? "failed" : "measured",
+        lesson: lessonFor(regionalStep, "KIỂM TRA BỔ SUNG · TRUFOR", "Ảnh có dấu hiệu chỉnh sửa ở đâu?",
+          score === null ? null : `TruFor · ${format(score)}`, "info"),
+      }));
+    }
+    if (guide.finding) {
+      stops.push(stop({
+        id: "summary", kind: "summary", label: "Tóm tắt", short: "Tóm tắt", state: guide.finding.partial ? "failed" : "measured",
+        lesson: { eyebrow: "TÓM TẮT", title: guide.finding.title, body: [{ label: "Điều ta quan sát được:", text: guide.finding.text }], detail: null, tone: guide.finding.partial ? "warn" : "info" },
+      }));
+    }
+
+    const measured = stops.filter((item) => item.state === "measured" && !isRegional(item) && item.kind !== "summary");
+    const hasFailure = stops.some((item) => item.state === "failed");
+    const status = adaptive ? investigation?.status : null;
+    const stage = failed ? "error"
+      : busy ? "running"
+        : !source ? (input.hasFile ? "ready" : "empty")
+          : status === "error" ? "error"
+            : status === "cancelled" || hasFailure ? "partial"
+              : !measured.length ? "partial" : "complete";
+    const existing = stops.find((item) => item.id === selectedId);
+    const pending = stops.find((item) => item.state === "pending" && !item.id.startsWith("slot-"));
+    const firstChanged = stops.find((item) => item.changed);
+    const chosen = existing || (busy && pending) || firstChanged || (source ? measured[0] : null) || null;
+    const ended = !!source && !busy;
+    return {
+      mode: adaptive ? "adaptive" : "fixed", stage, stops, threshold, counts: trackCounts(stops, threshold),
+      selectedId: chosen?.id || null,
+      answer: ended ? answerFor(stops, threshold, adaptive ? "adaptive" : "fixed", stage === "error" ? "error" : stage === "partial" ? (status === "cancelled" ? "cancelled" : "partial") : "complete", reasonForSummary(source, adaptive)) : null,
+    };
+  }
+
+  function reasonForSummary(source, adaptive) {
+    if (!adaptive || !source?.summary?.stop_reason) return "";
+    return { cancelled: "Phiên đã dừng theo yêu cầu của bạn.", planner_finished: "AI đã chọn kết thúc phân tích.", budget_exhausted: "Đã dùng hết số lượt gọi mô hình cho phép.", planner_failed: "Mô hình chọn phép thử gặp lỗi.", original_detector_failed: "Phép đo ảnh gốc gặp lỗi." }[source.summary.stop_reason] || "";
+  }
+
+  const api = { build, previewLabel, configChip, plannedStops, answerFor, trackCounts, operationLabel, stopModel };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.ForensicsGuide = api;
 })(typeof window === "undefined" ? globalThis : window);
