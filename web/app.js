@@ -631,8 +631,8 @@
       if (available.length) body.push(links);
     } else if (selected.kind === "regional") {
       const evidence = regionalEvidence();
-      if (evidence?.message) body.push(railParagraph("TruFor:", translate(evidence.message)));
-      (lesson.body || []).forEach((part) => body.push(railParagraph(part.label, part.text)));
+      const action = (lesson.body || [])[0];
+      if (action) body.push(railParagraph(action.label, action.text));
       const warnings = Array.isArray(evidence?.warnings) ? evidence.warnings : [];
       if (warnings.length) body.push(railParagraph("Đọc cùng nhau:", warnings.map((warning) => translate(warning)).join(" ")));
     } else {
@@ -1198,7 +1198,7 @@
         frame.classList.toggle("zoomed", zoom() > 1);
         frame.classList.toggle("pixelated", zoom() >= 2);
       }
-      $("zoom-reset").textContent = zoom() === 1 ? "Vừa khung" : `${Math.round(zoom() * 100)}%`;
+      $("zoom-reset").textContent = zoom() === 1 ? "Mặc định" : `${Math.round(zoom() * 100)}%`;
       $("zoom-out").disabled = zoomIndex === 0;
       $("zoom-in").disabled = zoomIndex === zoomSteps.length - 1;
     }

@@ -15,7 +15,7 @@
    "originalVisible": true
   },
   "loaded": {
-   "answer": "Có. Cả 3 bản sao xuống dưới ngưỡng. | Sau 1 vòng, điểm rơi từ 0,988 xuống 0,099. Điểm số chưa phải kết luận về nguồn gốc ảnh.",
+   "answer": "Không. Cả 3 bản sao xuống dưới ngưỡng. | Sau 1 vòng, điểm rơi từ 0,988 xuống 0,099. Điểm số chưa phải kết luận về nguồn gốc ảnh.",
    "scores": [
     "0,988",
     "0,099",
@@ -35,7 +35,7 @@
    "stageTitle": "TruFor · ảnh gốc",
    "stageHint": "Bản đồ bất thường · Độ tin cậy định vị",
    "card": "KIỂM TRA RIÊNG Không gộp với B-Free vùng chỉnh sửa TruFor · 0,032 · ảnh gốc",
-   "rail": "KIỂM TRA BỔ SUNG · TRUFOR Ảnh có dấu hiệu chỉnh sửa ở đâu? TruFor: TruFor đã trả về bản đồ bất thường do chỉnh sửa và bản đồ độ tin cậy định vị. Đầu ra đã qua bước kiểm tra hợp lệ. Ta làm gì: TruFor phân tích ảnh gốc để tạo bản đồ bất thường và độ tin cậy định vị. Nghĩa là: Vùng được tô màu gợi ý dấu hiệu chỉnh sửa, không xác định điểm ảnh do AI tạo. Đọc cùng nhau: TruFor định vị dấu hiệu chỉnh sửa bất thường, không xác định điểm ảnh do AI tạo. Điểm hiển thị chưa phải xác suất được hiệu chuẩn độc lập. TruFor · 0,032 ← Vòng 3 Tóm tắt →"
+   "rail": "KIỂM TRA BỔ SUNG · TRUFOR Ảnh có dấu hiệu chỉnh sửa ở đâu? Ta làm gì: TruFor phân tích ảnh gốc để tạo bản đồ bất thường và độ tin cậy định vị. Đọc cùng nhau: TruFor định vị dấu hiệu chỉnh sửa bất thường, không xác định điểm ảnh do AI tạo. Điểm hiển thị chưa phải xác suất được hiệu chuẩn độc lập. TruFor · 0,032 ← Vòng 3 Tóm tắt →"
   },
   "summary": {
    "rail": "TÓM TẮT Xử lý ảnh đã làm đổi câu trả lời Điều ta quan sát được: 3 trong 3 bản sao đổi phía so với ảnh gốc tại mốc 0,500. Điểm cao hay thấp đều chưa xác nhận nguồn gốc ảnh. Giới hạn của lần chạy này Điểm số là phản hồi của mô hình, chưa phải xác suất đã được hiệu chuẩn về tính xác thực của ảnh. Các biến thể của cùng một ảnh có tương quan; sự ổn định không phải bằng chứng xác nhận độc lập. Chất lượng JPEG là thiết lập của bộ mã hóa, không đo được mức nén ảnh đã trải qua. Tải kết quả: CSV ↓ · JSON ↓ ← Vòng 3"

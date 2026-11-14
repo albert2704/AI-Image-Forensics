@@ -167,6 +167,7 @@ summary { cursor: pointer; }
 .image-stage.panning { cursor: grabbing; }
 .zoom-layer { position: absolute; inset: 0; transform-origin: 50% 50%; transform: translate(var(--pan-x, 0px), var(--pan-y, 0px)) scale(var(--zoom, 1)); }
 .zoom-layer img, .zoom-layer canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.stage-body[data-view="side"] .zoom-layer img { object-fit: cover; }
 .pixelated .zoom-layer img, .pixelated .zoom-layer canvas { image-rendering: pixelated; }
 .stage-chip { display: none; position: absolute; z-index: 3; top: 8px; left: 8px; background: #1a303ad9; color: #fff; font-size: 11px; line-height: 1; padding: 6px 9px; border-radius: 4px; }
 #result-figure .stage-chip { left: auto; right: 8px; }

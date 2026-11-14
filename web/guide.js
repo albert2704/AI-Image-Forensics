@@ -218,15 +218,17 @@
     }
     const changed = copies.filter((item) => typeof item.changed === "boolean" ? item.changed : (item.score > threshold) !== (baseline.score > threshold));
     const flips = changed.length, total = copies.length;
+    const baseAbove = baseline.score > threshold;
     let tone = "info";
     let title;
-    if (!flips) title = `Không. Cả ${total} ${noun} giữ nguyên nhóm.`;
-    else if (flips === total) {
+    if (!flips) {
+      title = baseAbove ? `Có. Cả ${total} ${noun} vẫn trên ngưỡng.` : `Không. Ảnh gốc và ${total} ${noun} đều dưới ngưỡng.`;
+    } else if (flips === total) {
       tone = "warn";
-      title = baseline.score > threshold ? `Có. Cả ${total} ${noun} xuống dưới ngưỡng.` : `Có. Cả ${total} ${noun} vượt ngưỡng.`;
+      title = baseAbove ? `Không. Cả ${total} ${noun} xuống dưới ngưỡng.` : `Có. Cả ${total} ${noun} vượt ngưỡng.`;
     } else {
       tone = "warn";
-      title = `Có. ${flips} trong ${total} ${noun} đổi nhóm.`;
+      title = baseAbove ? `Một phần. ${total - flips} trong ${total} ${noun} vẫn trên ngưỡng.` : `Một phần. ${flips} trong ${total} ${noun} vượt ngưỡng.`;
     }
     let detail;
     if (flips) {
@@ -236,7 +238,9 @@
       detail = `${when}điểm ${rising ? "tăng" : "rơi"} từ ${format(baseline.score)} ${rising ? "lên" : "xuống"} ${format(first.score)}.`;
     } else {
       const scores = scored.map((item) => item.score);
-      detail = `Điểm cao nhất ${format(Math.max(...scores))}, thấp nhất ${format(Math.min(...scores))}; mô hình giữ nguyên nhóm.`;
+      detail = baseAbove
+        ? `Điểm cao nhất ${format(Math.max(...scores))}, thấp nhất ${format(Math.min(...scores))}; mô hình vẫn phát hiện tín hiệu AI ở cả ${total} ${noun}.`
+        : `Điểm cao nhất ${format(Math.max(...scores))}, thấp nhất ${format(Math.min(...scores))}; mô hình không phát hiện tín hiệu AI ở ảnh gốc lẫn ${noun}.`;
     }
     return { tone, title: `${prefix}${title}`, detail: `${lead}${detail} ${caution}` };
   }

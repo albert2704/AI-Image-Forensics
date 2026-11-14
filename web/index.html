@@ -76,7 +76,7 @@
             </div>
             <div class="zoom-tools" aria-label="Thu phóng">
               <button type="button" class="tool-button" id="zoom-out" aria-label="Thu nhỏ">−</button>
-              <button type="button" class="tool-button zoom-level" id="zoom-reset" aria-label="Vừa khung">Vừa khung</button>
+              <button type="button" class="tool-button zoom-level" id="zoom-reset" aria-label="Đặt lại thu phóng">Mặc định</button>
               <button type="button" class="tool-button" id="zoom-in" aria-label="Phóng to">+</button>
             </div>
             <div class="diff-tools" id="diff-tools" hidden>
@@ -260,7 +260,7 @@
       <section id="guide-stability"><h3>Ổn định chưa có nghĩa là xác nhận</h3><p>Các biến thể cùng xuất phát từ một ảnh nên có tương quan. Điểm số giữ nguyên qua nhiều phép biến đổi cho thấy phản hồi của mô hình lặp lại được, không phải bằng chứng độc lập về nguồn gốc ảnh.</p></section>
       <section id="guide-modes"><h3>Nối tiếp và đối chứng một lượt</h3><p><strong>Nối tiếp:</strong> mỗi vòng xử lý ảnh từ kết quả vòng trước; ở vòng r, kích thước đích là kích thước gốc × tỉ lệ<sup>r</sup>. <strong>Đối chứng một lượt:</strong> mỗi điều kiện bắt đầu lại từ ảnh gốc, đổi trực tiếp về cùng kích thước đích rồi nén JPEG một lần. Đối chứng chỉ nén JPEG có thể trùng nhau; đó là đối chứng có chủ đích, không phải bằng chứng độc lập thêm.</p></section>
       <section id="guide-table"><h3>Bảng đo từng vòng</h3><p>MSE và PSNR so sánh từng biến thể với ảnh gốc được đổi trực tiếp (LANCZOS) về đúng kích thước của biến thể đó. PSNR ∞ nghĩa là điểm ảnh trùng hoàn toàn với ảnh tham chiếu. Sai khác điểm ảnh không phải bằng chứng ảnh AI. Dung lượng phụ thuộc định dạng lưu, gồm cả ảnh gốc chuẩn hóa dạng PNG, nên không phải tỉ lệ nén so với tệp tải lên.</p></section>
-      <section id="guide-viewer"><h3>Khung so sánh</h3><p>Ảnh được co vừa khung để so sánh, nên ảnh đã thu nhỏ trông cùng cỡ với ảnh gốc. Hãy xem số điểm ảnh ở chú thích để biết kích thước thật. Khi phóng to từ 200% trở lên, điểm ảnh được hiển thị sắc nét để thấy rõ khối nén JPEG.</p></section>
+      <section id="guide-viewer"><h3>Khung so sánh</h3><p>Ảnh được phủ kín khung để dễ so sánh, nên phần trên và dưới có thể bị cắt; chuyển sang Trượt để xem toàn ảnh. Hãy xem số điểm ảnh ở chú thích để biết kích thước thật. Khi phóng to từ 200% trở lên, điểm ảnh được hiển thị sắc nét để thấy rõ khối nén JPEG.</p></section>
       <section id="guide-diff"><h3>Bản đồ khác biệt</h3><p>Bản đồ tô màu |ảnh gốc − biến thể| sau khi đưa ảnh gốc về cùng kích thước với biến thể, rồi khuếch đại để dễ nhìn: tối là gần giống, sáng là khác nhiều. Bản đồ được tính ngay trên trình duyệt nên chỉ để quan sát. Phép thu nhỏ của trình duyệt khác LANCZOS, vì vậy số đo chính thức vẫn là MSE/PSNR trong bảng.</p></section>
       <section id="guide-regional"><h3>TruFor kiểm tra từng vùng</h3><p>TruFor định vị dấu hiệu chỉnh sửa cục bộ, không xác định điểm ảnh do AI tạo. Hãy đọc bản đồ bất thường cùng bản đồ độ tin cậy định vị: vùng có độ tin cậy thấp cần diễn giải thận trọng hơn. Chỉnh sửa thông thường cũng để lại dấu vết. Điểm TruFor được trình bày riêng và không bao giờ gộp với B-Free.</p></section>
       <section id="guide-agent"><h3>Phân tích thích ứng</h3><p>B-Free đo ảnh gốc trước. Sau đó Qwen chạy trên máy chọn phép thử tiếp theo từ danh sách cho phép, dựa trên kết quả đã ghi nhận và số lượt còn lại. Qwen không nhận ảnh, tên tệp hay nhãn. Phần tóm tắt được tính từ giá trị đã đo, có mã bằng chứng E1, E2… dẫn về từng phép đo.</p></section>
