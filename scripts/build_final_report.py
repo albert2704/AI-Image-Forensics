@@ -165,7 +165,7 @@ def build():
         ]),
         ("Reproduction and references", [
             ("Run the prototype and inspect the evidence", "heading"),
-            ("Start with bash scripts/start-with-models.sh and open http://127.0.0.1:8765. The fixed mode runs explicit transformations; Adaptive investigation uses the local Qwen model. Images and outputs remain on this machine. Each saved run contains source bytes, hashes, measured evidence and exports. The browser has no public deployment or account layer.", "body"),
+            ("Start with bash scripts/start-with-models.sh and open http://127.0.0.1:8766. The fixed mode runs explicit transformations; Adaptive investigation uses the local Qwen model. Images and outputs remain on this machine. Each saved run contains source bytes, hashes, measured evidence and exports. The browser has no public deployment or account layer.", "body"),
             ("Reproduce acquisition with scripts/acquire_benchmark.py; freeze a new study with python -m forensics.benchmark freeze; execute with its run subcommand and a configured detector. The delivered output/benchmark/protocol.json is immutable and identifies the completed pilot. Exact commands are documented in README.md and docs/BENCHMARK_PROTOCOL.md. Re-run tests with .venv/bin/python -m unittest discover -s tests -v.", "body"),
             (f"Detector study hash: {protocol['protocol_hash']}. Agent evaluation hash: {agent['protocol_hash']}. Detailed results: output/benchmark/results/*/predictions.csv and summary.json; output/agent-evaluation/episodes.jsonl and summary.json. Editable narrative: docs/RESEARCH_WRITEUP.md. Figures are exported as PNG and PDF.", "reference"),
             ("References", "heading"),

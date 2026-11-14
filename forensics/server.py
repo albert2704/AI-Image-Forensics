@@ -95,7 +95,7 @@ class Handler(BaseHTTPRequestHandler):
             if Path(filename).suffix not in {".png", ".jpg", ".json", ".csv"}:
                 return self.send_json({"error": "Not found"}, 404)
             file = RUNS / path.removeprefix("/runs/")
-        elif path in {"/", "/index.html", "/style.css", "/app.js"}:
+        elif path in {"/", "/index.html", "/style.css", "/guide.js", "/app.js"}:
             file = ROOT / "web" / ("index.html" if path == "/" else path.lstrip("/"))
         else:
             return self.send_json({"error": "Not found"}, 404)
@@ -243,7 +243,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     parser = argparse.ArgumentParser(description="Run the local AI Image Forensics Assistant")
-    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--port", type=int, default=8766)
     args = parser.parse_args()
     Handler.detector = choose_detector({})
     Handler.planner = LocalPlanner()
