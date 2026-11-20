@@ -1,79 +1,85 @@
+## Báo cáo nghiên cứu
 
-## Research report
+# Đánh giá khả năng phát hiện ảnh do AI tạo dưới tác động của nén và đổi kích thước lặp lại
 
-# Evaluating AI-Generated Image Detection Under Repeated Compression and Resizing
+Trợ lý giám định ảnh cục bộ, benchmark cố định các bộ phát hiện, và chính sách điều tra có giới hạn bằng mô hình ngôn ngữ
 
-A local image-forensics assistant, a frozen detector benchmark, and a bounded language-model investigation policy
+Nghiên cứu thí điểm đã hoàn tất | 18 tháng 10 năm 2026 | Các phép đo tái lập được và giới hạn nghiên cứu
 
-Completed pilot | 18 October 2026 | Reproducible measurements and research limitations
+### Tóm tắt
 
-### Abstract
+Dự án này nghiên cứu cách các thao tác xử lý ảnh lặp lại làm thay đổi bằng chứng của bộ phát hiện ảnh do AI tạo. Nguyên mẫu chạy cục bộ tích hợp B-Free để chấm điểm ảnh AI trên toàn ảnh và TruFor để tạo bản đồ dấu hiệu chỉnh sửa cục bộ tách biệt. Nghiên cứu thí điểm có đối chứng gồm 320 ảnh đã công bố: 160 ảnh chụp thật và 160 ảnh sinh bởi bốn họ bộ sinh, được ghép cặp theo ảnh nguồn/prompt tương ứng. Tập dữ liệu được chia theo tỷ lệ 64/64/192 cho huấn luyện/validation/kiểm tra nhằm ngăn các cặp ghép vượt qua ranh giới tập chia. Chín điều kiện ảnh xác định trước tạo ra 1.728 dự đoán trên tập kiểm tra giữ lại cho mỗi bộ phát hiện. B-Free được so sánh với mô hình đối chứng hồi quy logistic FFT/DCT chỉ khớp trên ảnh gốc thuộc tập huấn luyện.
 
-This project studies how repeated image processing changes AI-generation detector evidence. A local prototype integrates B-Free for whole-image generation scores and TruFor for distinct local-manipulation maps. A controlled pilot contains 320 released images: 160 real photographs and 160 generated images across four generators, grouped by matched source/prompt. A 64/64/192 training/validation/test split prevents matched pairs from crossing splits. Nine prespecified image conditions yield 1,728 held-out predictions per detector. B-Free is compared with a train-only FFT/DCT logistic-regression baseline.
+Balanced accuracy của B-Free giữ ở mức 100,0% trên ảnh gốc và 100,0% sau ba lần nén JPEG chất lượng 85. Thay đổi ghép cặp là +0,0 điểm phần trăm (khoảng bootstrap theo nhóm 95% từ +0,0 đến +0,0). Khoảng này bị suy biến vì không có nhóm quan sát nào làm đổi kết cục đầu cuối; kết quả này không chứng minh bất định bằng 0 trên dữ liệu mới. Phân tích hậu kiểm cho thấy các trường hợp tụt qua ngưỡng liên quan đến đổi kích thước tập trung ở DALL-E 3 (34 sự kiện âm tính giả trên 11 nguồn ảnh AI duy nhất; trong đó DALL-E 3 chiếm 32 sự kiện trên 9 nguồn và Midjourney v5 chiếm 2 sự kiện trên 2 nguồn). AUROC tổng hợp vẫn đạt ít nhất 0,9962 trong khi balanced accuracy giảm xuống 94,79%. Các chỉ số chẩn đoán hiệu chuẩn cũng thay đổi dưới tác động xử lý. Đây là các phát hiện mang tính thăm dò trên cùng tập nguồn kiểm tra giữ lại, không phải các thí nghiệm độc lập.
 
-B-Free balanced accuracy changed from 100.0% on originals to 100.0% after three JPEG quality-85 encodes. The paired change was +0.0 percentage points (95% group-bootstrap interval +0.0 to +0.0). This interval is degenerate because no observed group changed the endpoint; it does not establish zero uncertainty on new data. Post-hoc analysis finds that resizing-related threshold misses concentrate in DALL-E 3. Aggregate AUROC remains at least 0.9962 while balanced accuracy falls to 94.79%. Calibration diagnostics also change under processing. These are exploratory findings on the same held-out sources, rather than independent experiments.
+Một mô hình Qwen nhỏ chạy cục bộ chọn các công cụ điều tra được phép dựa trên các phép đo đã quan sát, trong giới hạn ngân sách mặc định 4 lượt gọi. Báo cáo sự kiện thực tế được tính toán xác định từ các bản ghi bằng chứng thay vì sinh tự do. Một thí nghiệm phát lại điểm số riêng biệt trên 24 nguồn so sánh các chính sách cố định, dựa trên quy tắc và mô hình ngôn ngữ.
 
-A small local Qwen model selects allowed investigation tools from observed measurements, under a four-call default budget. Its factual report is calculated from evidence records rather than generated freely. A separate 24-source score-replay experiment compares fixed, rule-based and language-model policies. The contribution is a reproducible measurement, error/calibration analysis and investigation system; the study does not establish universal detection accuracy, calibrated authenticity probabilities, causal generator attribution or superiority of an AI agent.
+**Ba đóng góp chính của nghiên cứu:**
+1. **Đo lường thực nghiệm có kiểm soát qua 9 điều kiện xử lý:** Đánh giá có đối chứng tác động của nén JPEG lặp lại, thu nhỏ kích thước lặp lại, đảo thứ tự xử lý và đối chứng một lượt khớp kích thước trên 320 ảnh ghép cặp (1.728 dự đoán kiểm tra mỗi bộ phát hiện), đối chiếu B-Free với mô hình đối chứng FFT/DCT.
+2. **Phân tích lỗi theo họ bộ sinh, xếp hạng và chẩn đoán hiệu chuẩn hậu kiểm:** Tách riêng lỗi vượt ngưỡng theo từng họ bộ sinh trên 96 nhóm ghép cặp, chỉ ra sự phân tách giữa năng lực xếp hạng (AUROC ≥ 0,9962) và điểm vận hành ngưỡng cố định (`score > 0.5`, balanced accuracy giảm còn 94,79%), đồng thời định lượng thay đổi Brier, NLL và ECE qua từng điều kiện.
+3. **Hệ thống giám định ảnh cục bộ minh bạch bằng chứng và chính sách điều tra có giới hạn:** Xây dựng ứng dụng web cục bộ tách biệt tín hiệu ảnh AI (B-Free) với định vị chỉnh sửa cục bộ (TruFor), sinh lời dẫn từ chính bằng chứng đo được (`E1`, `E2`…), và đánh giá phát lại chính sách trên 24 nguồn cho thấy chưa có lợi thế thực nghiệm của chính sách LLM so với quy trình cố định hay quy tắc đơn giản.
 
-### Research questions
+Nghiên cứu này không khẳng định độ chính xác phát hiện phổ quát, xác suất xác thực đã hiệu chuẩn, quy kết nhân quả theo bộ sinh hay tính ưu việt của tác tử AI.
 
-RQ1: How do repeated JPEG compression, repeated resizing, processing order and matched-size single-pass controls change detector discrimination and fixed-threshold decisions? RQ2: Can a bounded observation-driven policy identify processing-sensitive evidence while making fewer tool calls than a fixed workflow? RQ3: How can the interface communicate measured evidence and uncertainty without conflating generation detection with manipulation localization?
+### Câu hỏi nghiên cứu
+
+RQ1: Nén JPEG lặp lại, đổi kích thước lặp lại, thứ tự xử lý và các đối chứng một lượt khớp kích thước làm thay đổi khả năng phân biệt và các quyết định theo ngưỡng cố định của bộ phát hiện như thế nào? RQ2: Một chính sách điều hướng theo quan sát có giới hạn có thể nhận diện bằng chứng nhạy cảm với xử lý với ít lượt gọi công cụ hơn quy trình cố định hay không? RQ3: Giao diện có thể truyền đạt bằng chứng đo được và sự bất định như thế nào mà không đánh đồng phát hiện ảnh AI với định vị chỉnh sửa cục bộ?
 
 
-## Dataset and experimental design
+## Tập dữ liệu và thiết kế thí nghiệm
 
-### A documented, grouped pilot
+### Nghiên cứu thí điểm có tài liệu hóa và phân nhóm
 
-The data come from the official Synthbuster release and the real RAISE-1k subset distributed for B-Free's extended Synthbuster evaluation. Four generators were selected before scoring: DALL-E 3, Adobe Firefly, Midjourney v5 and Stable Diffusion XL. Each contributes 40 generated images matched to 40 distinct real photographs by the common RAISE filename stem. A real photograph is used once. SHA-256-ranked selection with fixed seed 20261018 creates 160 groups. Each generator stratum contributes 8 training, 8 validation and 24 test groups: 64, 64 and 192 images overall. [5, 6]
+Dữ liệu được lấy từ bản phát hành chính thức của Synthbuster và tập con ảnh thật RAISE-1k phân phối kèm đánh giá Synthbuster mở rộng của B-Free. Bốn họ bộ sinh được chọn trước khi chấm điểm: DALL-E 3, Adobe Firefly, Midjourney v5 và Stable Diffusion XL. Mỗi họ đóng góp 40 ảnh AI được ghép cặp với 40 ảnh chụp thật riêng biệt thông qua phần tên gốc chung của RAISE. Mỗi ảnh chụp thật chỉ được dùng một lần. Việc chọn mẫu xếp hạng theo SHA-256 với seed cố định `20261018` tạo ra 160 nhóm. Mỗi tầng bộ sinh đóng góp 8 nhóm huấn luyện, 8 nhóm validation và 24 nhóm kiểm tra: tổng cộng 64, 64 và 192 ảnh. [5, 6]
 
-The acquisition script retrieves only selected ZIP members using HTTP byte ranges, verifies original ZIP CRC values, and records source URLs and file hashes. Selection is frozen before downloads and missing files are not silently replaced. Original release bytes are retained. The full manifest, source metadata, license files and selection plan are available with the project. Synthbuster uses CC BY-NC-SA 4.0; RAISE carries scientific/research and noncommercial terms.
+Script thu thập chỉ tải các thành viên ZIP được chọn bằng HTTP byte range, kiểm tra lại giá trị CRC gốc của ZIP, và lưu URL nguồn cùng mã băm tệp. Danh sách chọn được đóng băng trước khi tải và các tệp thiếu không bị thay thế âm thầm. Các byte gốc từ bản phát hành được giữ nguyên. Bản kê khai (manifest) đầy đủ, siêu dữ liệu nguồn, tệp giấy phép và kế hoạch chọn mẫu đều đi kèm dự án. Synthbuster sử dụng giấy phép CC BY-NC-SA 4.0; RAISE mang điều khoản khoa học/nghiên cứu và phi thương mại.
 
-The real release has already been resized to approximately one megapixel, while synthetic files retain different delivered dimensions. These are released originals, not uniformly pristine camera/generator outputs. Content, generator, dimension and prior-processing differences may affect absolute classification performance. Within-source processing changes are therefore the central result. Synthbuster was used in upstream B-Free research: project-held-out test images are not claimed to be unseen during all upstream model development.
+Bản phát hành ảnh thật đã được đổi kích thước sẵn về khoảng 1 megapixel, trong khi các tệp ảnh sinh giữ nguyên kích thước phân phối khác nhau. Đây là các ảnh gốc đã phát hành, không phải ảnh nguyên bản đồng nhất từ máy ảnh hay bộ sinh. Khác biệt về nội dung, bộ sinh, kích thước và tiền xử lý có thể ảnh hưởng đến hiệu năng phân loại tuyệt đối. Do đó, mức thay đổi khi xử lý trong cùng một ảnh nguồn là kết quả trung tâm. Synthbuster từng được dùng trong nghiên cứu gốc của B-Free: các ảnh kiểm tra giữ lại của dự án không được khẳng định là hoàn toàn chưa từng xuất hiện trong quá trình phát triển mô hình thượng nguồn.
 
-### Prespecified conditions
+### Chín điều kiện xử lý xác định trước
 
-| Arm | Operations and final observation |
+| Nhánh điều kiện | Thao tác và quan sát cuối cùng |
 | --- | --- |
-| Original | RGB-normalized lossless baseline; no experimental distortion. |
-| JPEG x1 / x3 | Quality 85, 4:2:0; score after one or three cumulative encodes. |
-| Resize x1 / x3 | LANCZOS; 90% per round, score after round 1 or 3. |
-| Resize + JPEG x1 / x3 | 90% resize then quality-95 JPEG at each round. |
-| Reversed order x3 | Quality-95 JPEG then 90% resize, repeated three times. |
-| Matched single pass | Start from original; resize directly to round-3 dimensions and JPEG once. |
+| Original (Ảnh gốc) | Ảnh tham chiếu không mất dữ liệu chuẩn hóa RGB; không có biến dạng thực nghiệm. |
+| JPEG x1 / x3 | Chất lượng 85, lấy mẫu màu 4:2:0; chấm điểm sau một hoặc ba lần mã hóa tích lũy. |
+| Resize x1 / x3 | LANCZOS; tỷ lệ 90% mỗi vòng, chấm điểm sau vòng 1 hoặc vòng 3. |
+| Resize + JPEG x1 / x3 | Thu nhỏ 90% rồi nén JPEG chất lượng 95 ở mỗi vòng. |
+| Reversed order x3 | Nén JPEG chất lượng 95 rồi thu nhỏ 90%, lặp lại ba lần. |
+| Matched single pass | Bắt đầu từ ảnh gốc; đổi kích thước trực tiếp về kích thước vòng 3 và nén JPEG một lần. |
 
-At round r, target dimensions equal round(original dimension x 0.9^r). Cumulative arms use the previous decoded image. Independent controls use the original at the matched final dimensions. A JPEG-then-resize result is stored as PNG to avoid an extra unplanned JPEG encode. Every derivative remains associated with its original source and matched group.
-
-
-## Models, measurements and statistical analysis
-
-### Detector and classical baseline
-
-B-Free uses the official pretrained DINOv2-based implementation and its native normalization and embedding-view aggregation. The adapter retains the raw logit and its sigmoid. The fixed positive rule is score > 0.5, equivalent to logit > 0; equality is negative. The official checkpoint and source revision are hashed. Four integration samples were checked against upstream reference logits. The MPS run differed from the CPU check by at most 0.000035 logit units, with identical decisions. No B-Free fitting or threshold tuning uses this pilot. [1, 2]
-
-The comparator uses 79 features: 16 radial FFT log-power averages and 63 mean absolute block-DCT AC coefficients. Normalized RGB images are converted to luminance and resized to 256 x 256. Mean and standard deviation are fitted on training originals only. A fixed L2 logistic regression (penalty coefficient 0.01) is fitted by deterministic Newton optimization. Its features, optimizer and threshold are frozen; validation images are reserved and unused. This small baseline is an interpretable comparison, not a strong state-of-the-art detector or fallback for missing inference.
-
-TruFor uses its official inference code to produce a local-manipulation score, anomaly map and reliability map. These address a different task from generation detection. Its maps are demonstrated in the prototype but no pixel-level localization accuracy is evaluated because the pilot provides image-level origin labels. [3, 4]
-
-### Endpoints and uncertainty
-
-The primary endpoint is the paired balanced-accuracy difference between three JPEG quality-85 encodes and the original at the fixed threshold. A 95% percentile interval uses 5,000 bootstrap samples of complete matched groups, retaining both real and generated sources and their paired conditions. The test set contains 96 matched groups treated as sampling units; between-group independence is an assumption. Other conditions, AUROC, average precision, TPR/FPR, confusion counts, score shifts and flips are descriptive secondary outcomes. No multiple-comparison significance claims are made.
-
-Brier score, NLL and ten-bin positive-class ECE are exported as descriptive calibration diagnostics; sigmoid outputs are not asserted to be calibrated probabilities. AUROC assigns half credit to ties and AP groups equal scores. Failures remain missing and are journaled. Derivatives never become independent samples. Distortion is measured with RGB MSE and PSNR against the original resized directly to each derivative's dimensions; zero MSE implies infinite PSNR, represented as null with an explicit convention.
-
-### Execution and audit
-
-A frozen protocol hashes the manifest, normalized pixels, model checkpoint, preprocessing implementation, conditions and software versions before inference. An append-only prediction/failure journal and content-addressed score cache support exact resume without silently changing the study. B-Free test inference uses Apple MPS in float32. The frequency baseline uses NumPy. Model training provenance and all measured predictions are retained.
+Tại vòng `r`, kích thước đích bằng `round(kích_thước_gốc × 0.9^r)`. Các nhánh tích lũy sử dụng ảnh đã giải mã từ vòng trước. Các đối chứng độc lập sử dụng ảnh gốc ở cùng kích thước cuối. Kết quả JPEG-rồi-đổi-kích-thước được lưu dưới dạng PNG để tránh phát sinh thêm một lần mã hóa JPEG ngoài kế hoạch. Mọi biến thể đều giữ liên kết với ảnh gốc và nhóm ghép cặp tương ứng.
 
 
-## Held-out detector results
+## Mô hình, phép đo và phân tích thống kê
 
-### Complete nine-condition comparison
+### Bộ phát hiện và mô hình đối chứng cổ điển
 
-Each table cell is measured on the same 192 held-out images (96 real, 96 generated; 24 generated images per family). Each detector completed 1,728 test predictions. Recorded failure attempts: B-Free 0; FFT/DCT 0. Balanced accuracy (bAcc) uses the fixed 0.5 threshold; AUC is AUROC.
+B-Free sử dụng mã nguồn chính thức dựa trên DINOv2 cùng chuẩn hóa và tổng hợp embedding-view nguyên bản. Bộ chuyển đổi (adapter) lưu giữ cả logit thô và giá trị sigmoid của nó. Quy tắc dương tính cố định là `score > 0.5`, tương đương `logit > 0`; giá trị bằng đúng ngưỡng tính là âm tính. Checkpoint và mã phiên bản nguồn chính thức đều được băm kiểm chứng. Bốn mẫu tích hợp đã được đối chiếu với logit tham chiếu từ mã gốc. Chạy trên MPS sai khác tối đa `0.000035` đơn vị logit so với kiểm tra trên CPU, với cùng quyết định phân loại. Không có bước khớp tham số hay tinh chỉnh ngưỡng nào của B-Free sử dụng dữ liệu thí điểm này. [1, 2]
 
-| Condition | B-Free bAcc | B-Free AUC | FFT/DCT bAcc | FFT/DCT AUC |
+Mô hình đối chứng sử dụng 79 đặc trưng: 16 trung bình công suất log phổ FFT theo bán kính và 63 hệ số AC trung bình tuyệt đối theo khối DCT. Ảnh RGB chuẩn hóa được chuyển sang độ chói (luminance) và đổi kích thước về `256 × 256`. Trung bình và độ lệch chuẩn chỉ được khớp trên ảnh gốc của tập huấn luyện. Một mô hình hồi quy logistic L2 cố định (hệ số phạt `0.01`) được khớp bằng tối ưu Newton xác định. Các đặc trưng, bộ tối ưu và ngưỡng đều được đóng băng; ảnh validation được giữ riêng và không sử dụng. Mô hình đối chứng nhỏ này đóng vai trò điểm so sánh dễ diễn giải, không phải bộ phát hiện mạnh hay phương án thay thế khi thiếu suy luận.
+
+TruFor sử dụng mã suy luận chính thức để tạo điểm chỉnh sửa cục bộ, bản đồ bất thường và bản đồ độ tin cậy. Các đầu ra này trả lời một bài toán khác với phát hiện ảnh do AI tạo. Các bản đồ của TruFor được minh họa trong nguyên mẫu nhưng không đánh giá độ chính xác cấp điểm ảnh vì tập thí điểm chỉ có nhãn nguồn gốc cấp ảnh. [3, 4]
+
+### Chỉ tiêu đầu cuối và ước lượng bất định
+
+Chỉ tiêu chính (primary endpoint) là hiệu balanced accuracy ghép cặp giữa ba lần nén JPEG chất lượng 85 và ảnh gốc tại ngưỡng cố định. Khoảng phân vị 95% dùng 5.000 mẫu bootstrap trên các nhóm ghép cặp hoàn chỉnh, giữ nguyên cả ảnh thật, ảnh sinh và các điều kiện ghép cặp của chúng. Tập kiểm tra gồm 96 nhóm ghép cặp được coi là đơn vị lấy mẫu; giả định là độc lập giữa các nhóm. Các điều kiện khác, AUROC, average precision (AP), TPR/FPR, bảng nhầm lẫn, mức dịch chuyển điểm số và tỷ lệ đổi nhãn là các kết quả thứ cấp mang tính mô tả. Không đưa ra tuyên bố ý nghĩa thống kê đa so sánh.
+
+Brier score, NLL và ECE mười khoảng lớp dương tính được xuất dưới dạng chẩn đoán hiệu chuẩn mô tả; đầu ra sigmoid không được khẳng định là xác suất đã hiệu chuẩn. AUROC chia nửa điểm cho các trường hợp bằng điểm và AP gộp các điểm bằng nhau. Các lượt lỗi giữ nguyên trạng thái thiếu dữ liệu và được ghi nhật ký. Các ảnh biến thể không bao giờ trở thành mẫu độc lập. Độ méo ảnh được đo bằng RGB MSE và PSNR so với ảnh gốc đổi kích thước trực tiếp về đúng kích thước của từng biến thể; MSE bằng 0 hàm ý PSNR vô hạn, biểu diễn là `null` kèm quy ước rõ ràng.
+
+### Thực thi và kiểm toán
+
+Một giao thức đóng băng băm kiểm chứng bản kê khai, điểm ảnh chuẩn hóa, checkpoint mô hình, hàm tiền xử lý, các điều kiện và phiên bản phần mềm trước khi suy luận. Nhật ký dự đoán/lỗi chỉ ghi nối thêm (append-only) cùng bộ nhớ đệm điểm số định địa chỉ theo nội dung cho phép chạy tiếp chính xác mà không làm sai lệch nghiên cứu. Suy luận tập kiểm tra của B-Free chạy trên Apple MPS với `float32`. Mô hình đối chứng tần số dùng NumPy. Nguồn gốc huấn luyện mô hình và toàn bộ dự đoán đã đo đều được lưu giữ.
+
+
+## Kết quả bộ phát hiện trên tập kiểm tra giữ lại
+
+### So sánh đầy đủ chín điều kiện
+
+Mỗi ô trong bảng được đo trên cùng 192 ảnh kiểm tra giữ lại (96 ảnh thật, 96 ảnh AI; 24 ảnh AI mỗi họ). Mỗi bộ phát hiện hoàn tất 1.728 dự đoán kiểm tra. Số lượt lỗi ghi nhận: B-Free `0`; FFT/DCT `0`. Balanced accuracy (`bAcc`) dùng ngưỡng cố định `0.5`; `AUC` là AUROC.
+
+| Điều kiện | B-Free bAcc | B-Free AUC | FFT/DCT bAcc | FFT/DCT AUC |
 | --- | --- | --- | --- | --- |
-| Original | 100.0% | 1.000 | 73.4% | 0.804 |
+| Ảnh gốc (Original) | 100.0% | 1.000 | 73.4% | 0.804 |
 | JPEG Q85 x1 | 100.0% | 1.000 | 73.4% | 0.802 |
 | JPEG Q85 x3 | 100.0% | 1.000 | 73.4% | 0.801 |
 | Resize 90% x1 | 99.5% | 1.000 | 73.4% | 0.803 |
@@ -81,40 +87,40 @@ Each table cell is measured on the same 192 held-out images (96 real, 96 generat
 | Resize + Q95 x1 | 99.5% | 1.000 | 72.9% | 0.802 |
 | Resize + Q95 x3 | 95.8% | 0.997 | 72.9% | 0.803 |
 | Q95 + resize x3 | 94.8% | 0.997 | 72.9% | 0.803 |
-| Matched single pass | 96.9% | 0.997 | 72.4% | 0.802 |
+| Đối chứng một lượt (Matched single pass) | 96.9% | 0.997 | 72.4% | 0.802 |
 
-B-Free balanced accuracy changed from 100.0% on originals to 100.0% after three JPEG quality-85 encodes. The paired change was +0.0 percentage points (95% group-bootstrap interval +0.0 to +0.0). This interval is degenerate because no observed group changed the endpoint; it does not establish zero uncertainty on new data.
+Balanced accuracy của B-Free thay đổi từ 100,0% trên ảnh gốc sang 100,0% sau ba lần nén JPEG chất lượng 85. Thay đổi ghép cặp là +0,0 điểm phần trăm (khoảng bootstrap nhóm 95% từ +0,0 đến +0,0). Khoảng này bị suy biến vì không có nhóm quan sát nào làm đổi kết cục đầu cuối; nó không chứng minh bất định bằng 0 trên dữ liệu mới.
 
-The frequency comparator had 0 threshold changes among 192 paired originals and Q85 round-3 images, with mean absolute score change 0.004142. Its paired bootstrap interval collapses to [0, 0] because the observed groups contain no balanced-accuracy changes. This degenerate interval cannot establish zero population uncertainty or rule out changes on new images.
+Mô hình đối chứng tần số có 0 thay đổi phân loại ngưỡng trong số 192 cặp ảnh gốc và ảnh nén Q85 vòng 3, với mức thay đổi điểm tuyệt đối trung bình là `0.004142`. Khoảng bootstrap ghép cặp của nó co về `[0, 0]` vì các nhóm quan sát không có thay đổi balanced accuracy. Khoảng suy biến này không chứng minh bất định tổng thể bằng 0 và không loại trừ khả năng thay đổi trên ảnh mới.
 
-### Interpretation
+### Diễn giải kết quả
 
-One Q85 encode gave B-Free balanced accuracy of 100.0%; three gave 100.0%. The primary baseline-to-round-3 contrast includes the first encode and cannot attribute its entire change to repetition alone. For B-Free, resizing alone changed balanced accuracy to 99.5% after one round and 95.8% after three. Three resize-then-Q95 rounds reached 95.8%, compared with 96.9% for one resize/JPEG pass at the same final dimensions. Reversing the repeated operation order reached 94.8%. Resizing rounds differ in final dimensions; the matched-size arm helps isolate processing history. These secondary comparisons are descriptive.
+Một lần nén Q85 cho B-Free balanced accuracy 100,0%; ba lần nén cho 100,0%. Phép đối chiếu chính từ ảnh gốc đến vòng 3 bao gồm cả lần nén đầu tiên nên không thể quy toàn bộ mức thay đổi (nếu có) chỉ cho sự lặp lại. Với B-Free, chỉ đổi kích thước làm balanced accuracy chuyển thành 99,5% sau một vòng và 95,8% sau ba vòng. Ba vòng thu nhỏ rồi nén Q95 đạt 95,8%, so với 96,9% ở một lượt thu nhỏ/nén JPEG tại cùng kích thước cuối. Đảo ngược thứ tự thao tác lặp lại đạt 94,8%. Các vòng đổi kích thước khác nhau về kích thước cuối; nhánh đối chứng khớp kích thước giúp cô lập lịch sử xử lý. Các so sánh thứ cấp này mang tính mô tả.
 
-AUROC measures ranking; balanced accuracy measures the frozen operating point. A threshold-performance change can reflect a score shift with little loss of ranking. Use the paired statistics for magnitude, and treat secondary intervals as descriptive.
+AUROC đo khả năng xếp hạng; balanced accuracy đo điểm vận hành đóng băng. Một thay đổi hiệu năng tại ngưỡng có thể phản ánh sự dịch chuyển điểm số mà ít làm mất thứ tự xếp hạng. Dùng thống kê ghép cặp để đánh giá độ lớn, và xem các khoảng tin cậy thứ cấp là số liệu mô tả.
 
-These values apply to this small, balanced released-data pilot, with possible upstream exposure and class-processing confounds. They do not establish performance on arbitrary internet uploads or unknown generators. Stable averages and high individual scores do not verify an image's origin.
+Các giá trị này áp dụng cho tập thí điểm nhỏ, cân bằng từ dữ liệu công bố sẵn, có thể tồn tại yếu tố gây nhiễu do xử lý theo lớp và khả năng lộ dữ liệu thượng nguồn. Chúng không chứng minh hiệu năng trên ảnh tải ngẫu nhiên trên internet hoặc các bộ sinh chưa biết. Giá trị trung bình ổn định và điểm cá biệt cao không xác minh được nguồn gốc của một bức ảnh.
 
 
-## Robustness across conditions
+## Độ bền vững qua các điều kiện
 
 ![Measured figure](../output/benchmark/figures/detector_robustness.png)
 
-Figure 1. Measured balanced accuracy and AUROC on the common 192-image test set. These are nine conditions on the same sources, not independent experiments. The FFT/DCT comparator was fitted only on training originals.
+Hình 1. Balanced accuracy và AUROC đo được trên cùng tập kiểm tra 192 ảnh. Đây là chín điều kiện trên cùng các ảnh nguồn, không phải chín thí nghiệm độc lập. Mô hình đối chứng FFT/DCT chỉ được khớp trên ảnh gốc của tập huấn luyện.
 
 ![Measured figure](../output/benchmark/figures/paired_balanced_accuracy_changes.png)
 
-Figure 2. Paired changes from original balanced accuracy, with 95% group-bootstrap intervals. Only JPEG quality-85 round 3 is the prespecified primary endpoint; other intervals are descriptive.
+Hình 2. Mức thay đổi balanced accuracy ghép cặp so với ảnh gốc, kèm khoảng bootstrap nhóm 95%. Chỉ điều kiện JPEG chất lượng 85 vòng 3 là chỉ tiêu chính xác định trước; các khoảng khác mang tính mô tả.
 
-### Post-hoc exploratory error, ranking and calibration analysis
+### Phân tích thăm dò hậu kiểm về lỗi, xếp hạng và hiệu chuẩn
 
-The analysis uses 192 held-out images in 96 matched groups, with 24 generated images and 24 paired real references per generator. Every condition uses the same sources and the frozen decision rule `score > 0.5`. Equality is negative. These post-hoc results are descriptive secondary findings.
+Phân tích sử dụng 192 ảnh kiểm tra giữ lại trong 96 nhóm ghép cặp, với 24 ảnh AI và 24 ảnh thật đối chứng ghép cặp cho mỗi họ bộ sinh. Mọi điều kiện dùng cùng các ảnh nguồn và quy tắc quyết định đóng băng `score > 0.5`. Bằng đúng ngưỡng tính là âm tính. Các kết quả hậu kiểm này là phát hiện thứ cấp mang tính mô tả.
 
-**Generator concentration of threshold misses.** B-Free records zero false positives among 96 real images in each condition. Original and both JPEG Q85 conditions also have zero false negatives. The six resizing or combined conditions produce 34 false-negative events involving 11 distinct generated images. DALL-E 3 accounts for 32 events involving nine images. Midjourney v5 accounts for two events involving two images. Repeated errors on one source are not independent observations.
+**Lỗi vượt ngưỡng tập trung theo họ bộ sinh.** B-Free ghi nhận 0 dương tính giả (FP) trong số 96 ảnh thật ở mọi điều kiện. Ảnh gốc và cả hai điều kiện JPEG Q85 cũng có 0 âm tính giả (FN). Sáu điều kiện đổi kích thước hoặc kết hợp tạo ra 34 sự kiện âm tính giả liên quan đến 11 ảnh AI duy nhất. DALL-E 3 chiếm 32 sự kiện trên 9 ảnh nguồn duy nhất. Midjourney v5 chiếm 2 sự kiện trên 2 ảnh nguồn duy nhất. Lưu ý thận trọng về sự kiện lặp lại: nhiều lỗi xảy ra lặp lại trên cùng một ảnh nguồn qua các điều kiện không phải các quan sát độc lập.
 
-All eight misses after three resizes are DALL-E 3 images. This reduces balanced accuracy within that matched stratum to 83.33%, compared with 95.83% overall. Firefly and SDXL have zero errors in every condition. FFT/DCT errors span both classes and all four matched strata. The table reports counts per condition, with 24 generated images and 24 real references per stratum.
+Toàn bộ 8 trường hợp bỏ sót sau ba lần đổi kích thước đều là ảnh DALL-E 3. Điều này kéo balanced accuracy trong tầng ghép cặp đó xuống 83,33%, so với 95,83% trên toàn tập. Firefly và SDXL có 0 lỗi ở mọi điều kiện. Lỗi của FFT/DCT rải đều ở cả hai lớp thật/AI và cả bốn tầng ghép cặp. Bảng dưới báo cáo số đếm theo từng điều kiện, với 24 ảnh AI và 24 ảnh thật tham chiếu ở mỗi tầng.
 
-| Condition | B-Free FN (DALL-E 3 / Firefly / MJ-v5 / SDXL) | B-Free FP | B-Free DALL-E 3 bAcc | B-Free overall bAcc | FFT/DCT FN (DALL-E 3 / Firefly / MJ-v5 / SDXL) | FFT/DCT FP (DALL-E 3 / Firefly / MJ-v5 / SDXL) | FFT/DCT overall bAcc |
+| Điều kiện | B-Free FN (DALL-E 3 / Firefly / MJ-v5 / SDXL) | B-Free FP | B-Free DALL-E 3 bAcc | B-Free overall bAcc | FFT/DCT FN (DALL-E 3 / Firefly / MJ-v5 / SDXL) | FFT/DCT FP (DALL-E 3 / Firefly / MJ-v5 / SDXL) | FFT/DCT overall bAcc |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Original | 0 (0 / 0 / 0 / 0) | 0 | 100.00% | 100.00% | 23 (8 / 6 / 5 / 4) | 28 (9 / 7 / 4 / 8) | 73.44% |
 | JPEG Q85 x1 | 0 (0 / 0 / 0 / 0) | 0 | 100.00% | 100.00% | 23 (8 / 6 / 5 / 4) | 28 (9 / 7 / 4 / 8) | 73.44% |
@@ -128,13 +134,13 @@ All eight misses after three resizes are DALL-E 3 images. This reduces balanced 
 
 ![Measured figure](../output/benchmark/figures/generator_error_breakdown.png)
 
-Figure 2a. Held-out threshold errors (`score > 0.5`, equality negative) across the nine conditions, decomposed by matched generator family (`96` matched groups; `24` generated images and `24` paired real references per family).
+Hình 2a. Các lỗi vượt ngưỡng trên tập kiểm tra giữ lại (`score > 0.5`, bằng ngưỡng tính là âm tính) qua chín điều kiện, phân rã theo họ bộ sinh ghép cặp (`96` nhóm ghép cặp; `24` ảnh AI và `24` ảnh thật tham chiếu ghép cặp mỗi họ).
 
-**Ranking remains strong while fixed-threshold performance declines.** B-Free AUROC is 0.9962 after three resizes, compared with 1.0000 on originals, while balanced accuracy declines to 95.83%. Across the four round-3 resizing and combined conditions, DALL-E 3 stratum AUROC is 0.9861 to 0.9878 and balanced accuracy is 81.25% to 87.50%. These results are consistent with downward score shifts across the fixed threshold while ranking remains strong. Ranking is not unchanged, and the analysis does not establish a calibrated replacement threshold. No threshold was tuned on the test set.
+**Khả năng xếp hạng vẫn cao trong khi hiệu năng tại ngưỡng cố định suy giảm.** AUROC của B-Free đạt `0.9962` sau ba lần đổi kích thước, so với `1.0000` trên ảnh gốc, trong khi balanced accuracy giảm xuống `95.83%`. Qua bốn điều kiện đổi kích thước và kết hợp ở vòng 3, AUROC của tầng DALL-E 3 nằm trong khoảng `0.9861` đến `0.9878` và balanced accuracy từ `81.25%` đến `87.50%`. Các kết quả này phù hợp với hiện tượng dịch chuyển điểm số xuống qua ngưỡng cố định trong khi thứ tự xếp hạng vẫn mạnh. Thứ tự xếp hạng không hề bất biến, và phân tích này không thiết lập một ngưỡng thay thế đã hiệu chuẩn. Không có ngưỡng nào được tinh chỉnh trên tập kiểm tra.
 
-**Calibration diagnostics change even when decisions do not.** After three JPEG Q85 encodes, B-Free retains 100% balanced accuracy and 1.0000 AUROC. ECE nevertheless rises from 0.0191 to 0.0256, Brier score from 0.0018 to 0.0031, and NLL from 0.0201 to 0.0274. Resizing produces larger changes, as shown below. ECE uses ten equal-width bins of positive-class scores. These diagnostics do not validate model sigmoids as authenticity probabilities.
+**Chỉ số chẩn đoán hiệu chuẩn thay đổi ngay cả khi quyết định không đổi.** Sau ba lần nén JPEG Q85, B-Free vẫn giữ balanced accuracy 100% và AUROC `1.0000`. Tuy nhiên, ECE tăng từ `0.0191` lên `0.0256`, Brier score từ `0.0018` lên `0.0031`, và NLL từ `0.0201` lên `0.0274`. Đổi kích thước gây ra thay đổi lớn hơn, như bảng dưới đây. ECE sử dụng mười khoảng chia đều trên điểm số lớp dương tính. Các chỉ số chẩn đoán này không xác thực giá trị sigmoid của mô hình là xác suất xác thực.
 
-| Condition | B-Free AUROC | B-Free Brier | B-Free NLL | B-Free ECE | FFT/DCT AUROC | FFT/DCT Brier | FFT/DCT NLL | FFT/DCT ECE |
+| Điều kiện | B-Free AUROC | B-Free Brier | B-Free NLL | B-Free ECE | FFT/DCT AUROC | FFT/DCT Brier | FFT/DCT NLL | FFT/DCT ECE |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Original | 1.0000 | 0.0018 | 0.0201 | 0.0191 | 0.8040 | 0.1872 | 0.6322 | 0.1100 |
 | JPEG Q85 x1 | 1.0000 | 0.0029 | 0.0266 | 0.0248 | 0.8021 | 0.1885 | 0.6350 | 0.1181 |
@@ -146,73 +152,73 @@ Figure 2a. Held-out threshold errors (`score > 0.5`, equality negative) across t
 | Q95 + resize x3 | 0.9966 | 0.0343 | 0.1176 | 0.0552 | 0.8027 | 0.1893 | 0.6413 | 0.1169 |
 | Matched single pass | 0.9967 | 0.0162 | 0.0679 | 0.0300 | 0.8022 | 0.1880 | 0.6359 | 0.1205 |
 
-The small sample and released-data confounds limit interpretation. RAISE references were already resized to approximately one megapixel. Synthetic release dimensions and processing histories differ, and the FFT/DCT preprocessing changes aspect ratio. Possible upstream B-Free exposure to Synthbuster also limits generalization. The analysis does not establish that generator identity causes the observed differences or that these findings extend to unseen generators and internet uploads.
+Cỡ mẫu nhỏ và các yếu tố gây nhiễu của dữ liệu phát hành giới hạn việc diễn giải. Ảnh tham chiếu RAISE đã được thu nhỏ sẵn về khoảng 1 megapixel. Kích thước phát hành và lịch sử xử lý của ảnh tổng hợp khác nhau, và tiền xử lý FFT/DCT làm thay đổi tỷ lệ khung hình. Khả năng B-Free thượng nguồn từng tiếp xúc với Synthbuster cũng giới hạn khả năng tổng quát hóa. Phân tích không chứng minh rằng danh tính bộ sinh gây ra các khác biệt quan sát được hoặc các phát hiện này mở rộng sang các bộ sinh chưa từng thấy và ảnh tải từ internet.
 
-Reproduce these generator-error tables and figure deterministically from the frozen held-out predictions with `.venv/bin/python scripts/analyze_generator_errors.py output/benchmark` (writes `output/benchmark/generator-error-analysis.json`, `output/benchmark/generator-error-analysis.csv`, `output/benchmark/condition-calibration-summary.csv`, and `output/benchmark/figures/generator_error_breakdown.{png,pdf}`).
+Tái lập các bảng lỗi theo bộ sinh và biểu đồ trên một cách xác định từ các dự đoán kiểm tra đã đóng băng bằng lệnh `.venv/bin/python scripts/analyze_generator_errors.py output/benchmark` (ghi ra `output/benchmark/generator-error-analysis.json`, `output/benchmark/generator-error-analysis.csv`, `output/benchmark/condition-calibration-summary.csv`, và `output/benchmark/figures/generator_error_breakdown.{png,pdf}`). Lưu ý: sau khi hợp nhất các cập nhật đa nền tảng vào `forensics/benchmark.py`, hàm `load_protocol` sẽ từ chối `output/benchmark/protocol.json` (đóng băng ngày 18/10) với thông báo thay đổi `code_fingerprint`; kiểm thử đơn vị `tests/test_generator_errors.py` xác minh tính xác định của script trên giao thức mới đóng băng.
 
 
-## An observation-driven forensics assistant
+## Trợ lý giám định định hướng theo quan sát
 
-### Finite tools, actual language-model choices
+### Tập công cụ hữu hạn, lựa chọn thực sự của mô hình ngôn ngữ
 
-The application performs one mandatory original B-Free measurement, then supplies its observations and the remaining budget to a local Qwen2.5-1.5B-Instruct model. The model chooses among one JPEG Q85 pass, three JPEG Q85 passes, one 90% resize, three resize/Q95 rounds, optional TruFor, and finish. Every perturbation branch starts from the original; repeated operations occur within that branch. Only the branch's final image is scored. [7]
+Ứng dụng thực hiện một phép đo B-Free bắt buộc trên ảnh gốc, sau đó cung cấp các quan sát và ngân sách còn lại cho mô hình Qwen2.5-1.5B-Instruct chạy cục bộ. Mô hình chọn giữa một lượt JPEG Q85, ba lượt JPEG Q85, một lượt đổi kích thước 90%, ba vòng đổi kích thước/Q95, kiểm tra TruFor tùy chọn, và kết thúc. Mỗi nhánh biến đổi đều bắt đầu từ ảnh gốc; các thao tác lặp lại diễn ra trong nhánh đó. Chỉ ảnh cuối cùng của nhánh được chấm điểm. [7]
 
-| Stage | Responsibility |
+| Giai đoạn | Trách nhiệm |
 | --- | --- |
-| Observe | Read image dimensions and actual model measurements. |
-| Choose | Qwen scores the tokens for offered numbered actions. |
-| Validate | Dispatcher enforces the allowlist, no repeats, and call budget. |
-| Execute | Run the chosen detector tool and record evidence with an ID. |
-| Reassess | Feed the new observations back; stop or select another tool. |
-| Explain | Compute a factual report from cited measurement records. |
+| Quan sát (Observe) | Đọc kích thước ảnh và các phép đo thực tế của mô hình. |
+| Chọn (Choose) | Qwen chấm điểm token tương ứng với các hành động đánh số được cung cấp. |
+| Kiểm tra hợp lệ (Validate) | Bộ điều phối áp đặt danh sách cho phép, không lặp lại và giới hạn lượt gọi. |
+| Thực thi (Execute) | Chạy công cụ phát hiện được chọn và lưu bằng chứng kèm mã định danh. |
+| Đánh giá lại (Reassess) | Đưa quan sát mới trở lại; dừng hoặc chọn công cụ khác. |
+| Diễn giải (Explain) | Tính toán báo cáo sự kiện thực tế từ các bản ghi phép đo được trích dẫn. |
 
-This is constrained next-token action selection: the highest-logit allowed digit selects a tool. It is not a hardcoded score-routing loop, nor free-form command generation. The default cap is four detector-tool attempts including the original, adjustable from two to six. Failures consume budget. Cancellation takes effect between calls. A fixed policy and a rule policy remain explicitly separate comparators. There is no rule fallback when the language model fails.
+Đây là cơ chế chọn hành động bằng token kế tiếp có ràng buộc: chữ số hợp lệ có logit cao nhất sẽ chọn công cụ. Nó không phải vòng lặp định tuyến điểm số cứng nhắc, cũng không phải sinh lệnh tự do. Mức trần mặc định là bốn lượt thử công cụ mô hình bao gồm cả ảnh gốc, có thể chỉnh từ hai đến sáu. Lượt lỗi vẫn tiêu tốn ngân sách. Lệnh hủy có hiệu lực giữa các lượt gọi. Chính sách cố định và chính sách theo quy tắc vẫn là các đối chứng tách biệt rõ ràng. Không có phương án dự phòng bằng quy tắc khi mô hình ngôn ngữ gặp lỗi.
 
-The planner sees numeric observations, not image pixels, filenames, embedded metadata text or ground-truth labels. No arbitrary code, shell or network tool is available. Model action weights describe relative preference over the offered actions, not forensic confidence. The audit trace retains observed evidence, offered actions, chosen action, prompt/policy hashes, model hashes, runtime and device. Action ordering is fixed and possible positional bias is unmeasured.
+Bộ lập kế hoạch chỉ thấy các quan sát dạng số, không thấy điểm ảnh, tên tệp, văn bản siêu dữ liệu nhúng hay nhãn đúng. Không có công cụ chạy mã tùy ý, shell hay mạng. Trọng số hành động của mô hình mô tả mức ưu tiên tương đối giữa các hành động được đề xuất, không phải độ tin cậy giám định. Nhật ký kiểm toán lưu lại bằng chứng quan sát được, các hành động đã cung cấp, hành động được chọn, mã băm prompt/chính sách, mã băm mô hình, thời gian chạy và thiết bị. Thứ tự liệt kê hành động là cố định và thiên lệch vị trí (nếu có) chưa được đo lường.
 
-### Grounded uncertainty in the UI
+### Diễn giải bất định dựa trên bằng chứng trong giao diện
 
-The report builder calculates score ranges, decision changes and successful-test counts directly from evidence E1, E2 and so on. It does not ask the model to invent a final rationale. If no perturbation succeeds, the result says robustness evidence is insufficient. The interface separates fixed trajectories from adaptive branches, shows actual manipulation/reliability maps when available, and exports JSON/CSV. B-Free and TruFor are never merged into one authenticity score.
+Bộ dựng báo cáo tính khoảng điểm, số lần đổi quyết định và số phép thử thành công trực tiếp từ các bằng chứng `E1`, `E2`… mà không yêu cầu mô hình tự bịa lời giải thích cuối cùng. Nếu không có biến đổi nào thành công, kết quả báo chưa đủ bằng chứng về độ ổn định. Giao diện tách biệt quỹ đạo cố định với các nhánh thích ứng, hiển thị bản đồ chỉnh sửa/độ tin cậy thực tế khi có, và xuất JSON/CSV. B-Free và TruFor không bao giờ bị gộp thành một điểm xác thực chung.
 
 
-## Policy comparison and observed behavior
+## So sánh chính sách và hành vi quan sát được
 
-### A separate 24-source replay pilot
+### Thí điểm phát lại riêng trên 24 nguồn
 
-Three matched real/generated test groups per generator were selected by a fixed SHA-256 ranking before policy scoring. The 24-source subset compares a fixed four-call sequence, an explicit rule baseline and local Qwen under the same four-call budget. Each policy receives only observations for tools it selects. Recorded B-Free scores are replayed to avoid redundant inference; newly measured planner runtime is separate from recorded detector time. TruFor is disabled for matched replay because the benchmark does not include regional observations.
+Ba nhóm kiểm tra thật/AI ghép cặp cho mỗi họ bộ sinh được chọn theo thứ tự SHA-256 cố định trước khi chấm chính sách. Tập con 24 nguồn so sánh chuỗi cố định 4 lượt gọi, mô hình đối chứng quy tắc tường minh và Qwen cục bộ dưới cùng ngân sách 4 lượt gọi. Mỗi chính sách chỉ nhận quan sát cho những công cụ mà nó chọn. Các điểm B-Free đã ghi nhận được phát lại để tránh suy luận dư thừa; thời gian chạy mới đo của bộ lập kế hoạch được tách riêng khỏi thời gian chạy bộ phát hiện đã ghi. TruFor được tắt trong phát lại ghép cặp vì tập benchmark không có quan sát từng vùng.
 
-The reference event is a threshold change in any of the four available perturbation branches. Discovery recall is the fraction of reference-unstable images on which the policy observes at least one change. It is not image-authenticity accuracy. A four-call budget includes the original and therefore cannot exhaust all four perturbations.
+Sự kiện tham chiếu là một lần đổi quyết định ngưỡng ở bất kỳ nhánh biến đổi nào trong bốn nhánh khả dụng. Tỷ lệ phát hiện (discovery recall) là tỷ lệ các ảnh không ổn định theo tham chiếu mà chính sách quan sát được ít nhất một thay đổi. Đây không phải độ chính xác xác thực ảnh. Ngân sách bốn lượt đã gồm ảnh gốc nên không thể chạy hết cả bốn phép biến đổi.
 
-| Policy | Episodes | Mean calls | Changes found | Discovery recall |
+| Chính sách | Số phiên (Episodes) | Số lượt gọi TB | Số thay đổi tìm được | Tỷ lệ phát hiện |
 | --- | --- | --- | --- | --- |
-| Fixed workflow | 24 | 4.00 | 1/1 | 100.0% |
-| Rule baseline | 24 | 2.54 | 1/1 | 100.0% |
-| Local Qwen | 24 | 4.00 | 1/1 | 100.0% |
+| Quy trình cố định (Fixed workflow) | 24 | 4.00 | 1/1 | 100.0% |
+| Đối chứng quy tắc (Rule baseline) | 24 | 2.54 | 1/1 | 100.0% |
+| Qwen cục bộ (Local Qwen) | 24 | 4.00 | 1/1 | 100.0% |
 
-Fixed workflow: 0 failed episodes; 24/24 valid-action episodes; 24/24 budget-compliant episodes; 24/24 with valid evidence references. Rule baseline: 0 failed episodes; 24/24 valid-action episodes; 24/24 budget-compliant episodes; 24/24 with valid evidence references. Local Qwen: 0 failed episodes; 24/24 valid-action episodes; 24/24 budget-compliant episodes; 24/24 with valid evidence references.
+Quy trình cố định: 0 phiên lỗi; 24/24 phiên hành động hợp lệ; 24/24 phiên tuân thủ ngân sách; 24/24 có tham chiếu bằng chứng hợp lệ. Đối chứng quy tắc: 0 phiên lỗi; 24/24 phiên hành động hợp lệ; 24/24 phiên tuân thủ ngân sách; 24/24 có tham chiếu bằng chứng hợp lệ. Qwen cục bộ: 0 phiên lỗi; 24/24 phiên hành động hợp lệ; 24/24 phiên tuân thủ ngân sách; 24/24 có tham chiếu bằng chứng hợp lệ.
 
-### Interpretation and limits
+### Diễn giải và giới hạn
 
-Only 1 of the 24 selected sources had reference-catalog instability, so the discovery-recall denominator is very small. Local Qwen found 1/1 reference events using 4.00 mean calls; the fixed workflow found 1/1 using 4.00, and the rule policy found 1/1 using 2.54. The measured pilot provides no observed discovery or tool-call advantage for the language-model policy. A larger, more challenging preregistered policy study is needed before making a benefit claim.
+Chỉ 1 trong 24 nguồn được chọn có sự mất ổn định trong danh mục tham chiếu, nên mẫu số của tỷ lệ phát hiện rất nhỏ. Qwen cục bộ tìm thấy 1/1 sự kiện tham chiếu với trung bình 4,00 lượt gọi; quy trình cố định tìm thấy 1/1 với 4,00 lượt gọi, và chính sách quy tắc tìm thấy 1/1 với 2,54 lượt gọi. Thí điểm đo được không cho thấy lợi thế nào về khả năng phát hiện hay tiết kiệm lượt gọi công cụ cho chính sách mô hình ngôn ngữ. Cần một nghiên cứu chính sách đăng ký trước (preregistered) quy mô lớn và khó hơn trước khi đưa ra bất kỳ khẳng định lợi ích nào.
 
-The comparison describes tool-use cost and discovery within a finite catalog. The small sample supports no inferential superiority claim, and failure to find a change is not evidence of general robustness. Budget compliance, valid actions and evidence-reference validity are checked structurally; they do not establish human-rated explanation quality. Qwen used the same three-test sequence for all 24 images.
+Phép so sánh mô tả chi phí dùng công cụ và khả năng phát hiện trong một danh mục hữu hạn. Cỡ mẫu nhỏ không đủ cơ sở cho khẳng định suy luận về tính ưu việt, và việc không tìm thấy thay đổi không phải bằng chứng về độ ổn định tổng quát. Việc tuân thủ ngân sách, tính hợp lệ của hành động và tính hợp lệ của tham chiếu bằng chứng được kiểm tra về mặt cấu trúc; chúng không khẳng định chất lượng giải thích theo đánh giá của con người. Qwen đã dùng cùng một chuỗi ba phép thử cho cả 24 ảnh.
 
-### Real end-to-end example
+### Ví dụ thực tế từ đầu đến cuối
 
-| Evidence | Measured test | B-Free score | Change from original |
+| Bằng chứng | Phép thử đã đo | Điểm B-Free | Thay đổi so với ảnh gốc |
 | --- | --- | --- | --- |
-| E1 | Original | 0.9882 | - |
+| E1 | Ảnh gốc | 0.9882 | - |
 | E2 | JPEG Q85 x3 | 0.7934 | -0.1948 |
 | E3 | Resize 90% x1 | 0.2719 | -0.7163 |
 
-The official B-Free img0002 example was used for integration, separately from the benchmark. Qwen chose three JPEG passes, then a resize, then finish, using 3 of four model calls in 27.6 seconds including initial planner loading. The report correctly identified one threshold change. This is an illustrative execution, not representative runtime or a policy-quality estimate.
+Mẫu chính thức `img0002` của B-Free được dùng cho kiểm thử tích hợp, tách biệt khỏi benchmark. Qwen chọn ba lượt JPEG, rồi một lượt đổi kích thước, rồi kết thúc, dùng 3 trong 4 lượt gọi mô hình trong 27,6 giây tính cả thời gian nạp bộ lập kế hoạch ban đầu. Báo cáo đã nhận diện đúng một lần thay đổi vượt ngưỡng. Đây là một lượt chạy minh họa, không phải thời gian chạy đại diện hay ước lượng chất lượng chính sách.
 
 
-## Regional evidence and validity limits
+## Bằng chứng từng vùng và giới hạn hiệu lực
 
-### Manipulation maps answer a different question
+### Bản đồ chỉnh sửa trả lời một câu hỏi khác
 
-TruFor was run on the official 256 x 256 tampered2 example. It returned an actual manipulation score of 0.998346 and the maps below. No pixel-accuracy metric was calculated. The same integration also ran TruFor on the B-Free img0002 original, obtaining 0.032239 despite B-Free's 0.988232 AI-generation score. Fully generated content can lack a localized inconsistency; the outputs address different tasks. [2, 4]
+TruFor được chạy trên mẫu chính thức `tampered2` kích thước `256 × 256`. Kết quả trả về điểm chỉnh sửa thực tế là `0.998346` cùng các bản đồ bên dưới. Không tính chỉ số độ chính xác cấp điểm ảnh. Cùng quy trình tích hợp cũng chạy TruFor trên ảnh gốc `img0002` của B-Free, thu được `0.032239` dù điểm phát hiện ảnh AI của B-Free là `0.988232`. Ảnh sinh hoàn toàn bởi AI có thể không có sự bất nhất cục bộ; hai đầu ra giải quyết hai bài toán khác nhau. [2, 4]
 
 *Source: artifact not in this repository.*
 
@@ -222,30 +228,30 @@ TruFor was run on the official 256 x 256 tampered2 example. It returned an actua
 
 ![Overlay](../output/model-verification/trufor-small/trufor-7736f96eddae4297b706c49dea99f4fe/localization-overlay.png)
 
-Figure 3. Official TruFor example: source, manipulation-anomaly map, localization reliability, and overlay. Anomaly uses a fixed blue-to-red 0-1 scale; reliability uses black-to-white. Neither map is AI-pixel attribution.
+Hình 3. Ví dụ chính thức của TruFor: ảnh nguồn (không lưu trong kho mã), bản đồ bất thường chỉnh sửa, bản đồ độ tin cậy định vị và ảnh chồng lớp. Bản đồ bất thường dùng thang cố định từ xanh dương đến đỏ `0–1`; độ tin cậy dùng đen đến trắng. Cả hai bản đồ đều không phải quy kết điểm ảnh do AI tạo.
 
-### Threats to validity
+### Các mối đe dọa đến hiệu lực
 
-The pilot has four known generator families, no newly held-out generator family, a small training set and source-dependent preprocessing. Related groups can still share scene properties across splits; grouped selection does not guarantee semantic independence. Upstream research exposure is possible. The bootstrapped interval reflects group sampling variation within this design, not every source of model or dataset uncertainty.
+Nghiên cứu thí điểm chỉ có bốn họ bộ sinh đã biết, không có họ bộ sinh mới giữ lại hoàn toàn ngoài tập, tập huấn luyện nhỏ và tiền xử lý phụ thuộc nguồn dữ liệu. Các nhóm liên quan vẫn có thể chia sẻ đặc điểm bối cảnh giữa các tập chia; chọn theo nhóm không bảo đảm độc lập ngữ nghĩa. Khả năng lộ dữ liệu trong nghiên cứu thượng nguồn có thể xảy ra. Khoảng bootstrap phản ánh biến thiên lấy mẫu theo nhóm trong thiết kế này, không phản ánh mọi nguồn bất định của mô hình hay dữ liệu.
 
-Repeated encoding at fixed quality may stabilize, while screenshots, mixed generated/real content, different encoders, prior compression and severe resizing may behave differently. Very small images can alter detector padding/cropping behavior. The local planner is small and does not visually inspect content. It can stop early, choose redundant scientific tests or overlook a useful branch despite valid dispatch. The deterministic report protects measurement grounding but cannot fix a poor investigation strategy.
+Nén lặp lại ở chất lượng cố định có thể ổn định, trong khi ảnh chụp màn hình, nội dung pha trộn thật/AI, bộ mã hóa khác nhau, nén trước đó và thu nhỏ mạnh có thể hành xử khác. Ảnh quá nhỏ có thể làm thay đổi hành vi đệm/cắt (padding/cropping) của bộ phát hiện. Bộ lập kế hoạch cục bộ có kích thước nhỏ và không quan sát nội dung thị giác. Nó có thể dừng sớm, chọn các phép thử dư thừa hoặc bỏ qua nhánh hữu ích dù lệnh điều phối hợp lệ. Báo cáo xác định bảo vệ tính gắn kết với phép đo nhưng không thể sửa một chiến lược điều tra kém.
 
-### Next research steps
+### Hướng nghiên cứu tiếp theo
 
-Expand the dataset with independent sources and new generator families; repeat the study with controlled release formats and dimensions; evaluate policy repetitions and action-order randomization; compare latency in full end-to-end runs; and separately evaluate regional localization with masks and human review. Threshold calibration, if introduced, must use validation data and be frozen before new test evaluation.
+Mở rộng tập dữ liệu với các nguồn độc lập và họ bộ sinh mới; lặp lại nghiên cứu với định dạng và kích thước phát hành được kiểm soát; đánh giá lặp lại chính sách và ngẫu nhiên hóa thứ tự hành động; so sánh độ trễ ở các lượt chạy toàn trình đầy đủ; và đánh giá riêng khả năng định vị vùng với mặt nạ nhãn và thẩm định con người. Việc hiệu chuẩn ngưỡng, nếu áp dụng, phải dùng dữ liệu validation và được đóng băng trước khi đánh giá trên tập kiểm tra mới.
 
 
-## Reproduction and references
+## Tái lập và tài liệu tham khảo
 
-### Run the prototype and inspect the evidence
+### Chạy nguyên mẫu và kiểm tra bằng chứng
 
-Start with bash scripts/start-with-models.sh and open http://127.0.0.1:8766. The fixed mode runs explicit transformations; Adaptive investigation uses the local Qwen model. Images and outputs remain on this machine. Each saved run contains source bytes, hashes, measured evidence and exports. The browser has no public deployment or account layer.
+Khởi động bằng `bash scripts/start-with-models.sh` và mở `http://127.0.0.1:8765` (hoặc thêm `--port 8766` để dùng cổng 8766). Chế độ tự chọn chạy các phép biến đổi tường minh; phân tích thích ứng dùng mô hình Qwen cục bộ. Ảnh và đầu ra được giữ trên máy cục bộ (trừ khi người dùng chủ động cấu hình endpoint Modal từ xa). Mỗi phiên lưu lại chứa byte ảnh nguồn, mã băm, bằng chứng đã đo và tệp xuất. Trình duyệt không có lớp tài khoản hay triển khai công khai.
 
-Reproduce acquisition with scripts/acquire_benchmark.py; freeze a new study with python -m forensics.benchmark freeze; execute with its run subcommand and a configured detector. The delivered output/benchmark/protocol.json is immutable and identifies the completed pilot. Exact commands are documented in README.md and docs/BENCHMARK_PROTOCOL.md. Re-run tests with .venv/bin/python -m unittest discover -s tests -v.
+Tái lập khâu tải dữ liệu bằng `scripts/acquire_benchmark.py`; đóng băng nghiên cứu mới bằng `python -m forensics.benchmark freeze`; chạy với lệnh con `run` và bộ phát hiện đã cấu hình. Tệp `output/benchmark/protocol.json` bàn giao là bất biến và định danh nghiên cứu thí điểm đã hoàn tất. Các lệnh chi tiết được ghi trong `README.md` và `docs/BENCHMARK_PROTOCOL.md`. Chạy lại kiểm thử bằng `.venv/bin/python -m unittest discover -s tests -v`.
 
-Detector study hash: 1c974e78ed2d391de1cd1897ac2513c757b2016917d621e3f38c97362ef5aafa. Agent evaluation hash: b34b11babb166808d5ddfdb45b14917ce6b11792c208fb73a8d91e1aa519d6c3. Detailed results: output/benchmark/results/*/predictions.csv and summary.json; output/benchmark/generator-error-analysis.{json,csv} and condition-calibration-summary.csv (reproduced with `.venv/bin/python scripts/analyze_generator_errors.py output/benchmark`); output/agent-evaluation/episodes.jsonl and summary.json. Editable narrative: docs/RESEARCH_WRITEUP.md. Figures are exported as PNG and PDF.
+Mã băm nghiên cứu bộ phát hiện: `1c974e78ed2d391de1cd1897ac2513c757b2016917d621e3f38c97362ef5aafa`. Mã băm đánh giá tác tử: `b34b11babb166808d5ddfdb45b14917ce6b11792c208fb73a8d91e1aa519d6c3`. Kết quả chi tiết: `output/benchmark/results/*/predictions.csv` và `summary.json`; `output/benchmark/generator-error-analysis.{json,csv}` và `condition-calibration-summary.csv` (tái lập bằng `.venv/bin/python scripts/analyze_generator_errors.py output/benchmark`); `output/agent-evaluation/episodes.jsonl` và `summary.json`. Nội dung có thể chỉnh sửa: `docs/RESEARCH_WRITEUP.md`. Biểu đồ được xuất dưới dạng PNG và PDF.
 
-### References
+### Tài liệu tham khảo
 
 [1] Guillaro et al. A Bias-Free Training Paradigm for More General AI-generated Image Detection. arXiv:2412.17671. https://arxiv.org/abs/2412.17671
 

@@ -8,9 +8,9 @@ AI Image Forensics Assistant là nguyên mẫu nghiên cứu chạy trên máy c
 
 > Điểm mô hình là tín hiệu phục vụ nghiên cứu, không phải kết luận ảnh thật hay giả. Điểm ổn định qua nhiều phép thử cũng không xác minh được nguồn gốc ảnh.
 
-![Giao diện tiếng Việt giới thiệu mục tiêu thí nghiệm và từng bước phân tích](docs/images/readme/investigation-overview.jpg)
+![Giao diện tiếng Việt hiển thị đường điểm B-Free theo từng mốc và giải thích ảnh gốc trong ví dụ đã lưu](docs/images/readme/investigation-overview.jpg)
 
-*Ảnh chụp giao diện với kết quả đã lưu. Xem lại các bước không chạy suy luận mới.*
+*Ảnh chụp giao diện hiện tại với ví dụ đã lưu (1024 × 1024, điểm B-Free ảnh gốc 0,988). Xem lại các mốc đã đo không chạy suy luận mới.*
 
 ## Dự án làm được gì?
 
@@ -21,6 +21,20 @@ AI Image Forensics Assistant là nguyên mẫu nghiên cứu chạy trên máy c
 - **Xuất bằng chứng:** JSON, CSV, kích thước ảnh, dung lượng, lịch sử phép biến đổi, MSE và PSNR.
 
 Kho mã chứa manifest, giao thức và kết quả đo của nghiên cứu thí điểm cố định gồm **320 ảnh**, cùng mô hình đối chứng FFT/DCT được huấn luyện chỉ trên ảnh gốc thuộc tập huấn luyện. Ảnh của bộ dữ liệu và trọng số mô hình không được đóng gói trong kho mã.
+
+## Đóng góp nghiên cứu chính
+
+1. **Đánh giá có đối chứng qua 9 điều kiện xử lý:** Đo B-Free và mô hình đối chứng FFT/DCT trên 192 ảnh kiểm tra giữ lại (96 nhóm thật/AI ghép cặp, 1.728 dự đoán mỗi bộ phát hiện) qua nén JPEG Q85 lặp lại, thu nhỏ 90% lặp lại, kết hợp đổi thứ tự và đối chứng một lượt khớp kích thước.
+2. **Phân tích lỗi theo bộ sinh, xếp hạng và hiệu chuẩn hậu kiểm:** B-Free giữ balanced accuracy 100,0% ở ảnh gốc và cả hai nhánh JPEG Q85 (`+0,0` điểm phần trăm, khoảng bootstrap nhóm 95% `+0,0` đến `+0,0`, suy biến), nhưng giảm xuống 95,83% sau 3 lần thu nhỏ 90% và 94,79% khi nén Q95 rồi thu nhỏ 3 lần trong khi AUROC vẫn ≥ 0,9962. 34 sự kiện âm tính giả tập trung ở 11 nguồn ảnh AI duy nhất (DALL-E 3: 32 sự kiện trên 9 nguồn; Midjourney v5: 2 sự kiện trên 2 nguồn; Firefly và SDXL: 0 lỗi; 0 dương tính giả trên 96 ảnh thật). *Lưu ý: các lỗi lặp lại trên cùng ảnh nguồn qua nhiều điều kiện không phải quan sát độc lập.*
+3. **Trợ lý giám định minh bạch và đánh giá chính sách chọn phép thử:** Tách riêng tín hiệu B-Free với bản đồ chỉnh sửa TruFor, tổng hợp giải thích từ bằng chứng `E1`, `E2`…, và thử nghiệm phát lại trên 24 nguồn cho thấy quy trình cố định (4,00 lượt gọi), quy tắc (2,54 lượt) và Qwen2.5-1.5B-Instruct cục bộ (4,00 lượt) đều tìm thấy 1/1 sự kiện đổi ngưỡng hiện có (chưa có lợi thế thực nghiệm cho LLM).
+
+Chi tiết đầy đủ bằng tiếng Việt nằm tại [Báo cáo nghiên cứu](docs/RESEARCH_WRITEUP.md). Tái lập bảng phân tích lỗi theo bộ sinh, hiệu chuẩn và hình minh họa từ dự đoán đã đóng băng bằng lệnh:
+
+```bash
+.venv/bin/python scripts/analyze_generator_errors.py output/benchmark
+```
+
+*Lưu ý tái lập: sau khi `origin/main` cập nhật `forensics/benchmark.py` cho đa nền tảng, `load_protocol` từ chối `output/benchmark/protocol.json` (đóng băng ngày 18/10) do khác `code_fingerprint`; kiểm thử `tests/test_generator_errors.py` xác minh tính xác định trên giao thức mới đóng băng.*
 
 ## Chạy ứng dụng
 
@@ -56,17 +70,17 @@ Máy chủ chỉ lắng nghe trên máy cục bộ. Mặc định ảnh được
 
 ## Thử phân tích một ảnh
 
-1. **Chọn ảnh** JPEG, PNG hoặc WebP. Giới hạn: 20 MiB, 20 megapixel, mỗi chiều ít nhất 16 pixel. Backend cũng đọc BMP/TIFF một khung hình.
-2. Nhấn **Phân tích ảnh**. Mặc định, **AI chọn phép thử**: đo B-Free trên ảnh gốc trước, rồi chọn phép thử tiếp theo từ các kết quả đã có. Ngân sách mặc định là 4 lượt gọi công cụ mô hình, tính cả lượt đo ảnh gốc.
-3. Đọc phần **Hiểu từng bước** để xem mục đích, thao tác và ý nghĩa của từng phép đo. Dùng **Quay lại** và nút bước tiếp theo để xem bằng chứng tương ứng.
-4. Muốn tự thiết kế thí nghiệm, mở **Thiết lập nâng cao → Tự chọn thiết lập**. Chọn chất lượng JPEG 50–100, tỉ lệ 0,5–1,0, số vòng 1–5 và thứ tự xử lý khi kết hợp hai phép biến đổi.
-5. Mở **Xem chi tiết kỹ thuật** để kiểm tra dữ liệu và xuất JSON/CSV. Có thể yêu cầu TruFor kiểm tra từng vùng; kết quả này được diễn giải riêng với điểm B-Free.
+1. **Chọn ảnh** JPEG, PNG hoặc WebP (hoặc nhấn **Hoặc xem ví dụ có kết quả đã lưu** để mở mẫu đã kiểm chứng). Giới hạn: 20 MiB, 20 megapixel, mỗi chiều ít nhất 16 pixel. Backend cũng đọc BMP/TIFF một khung hình.
+2. Nhấn **Phân tích ảnh**. Mặc định, chế độ **Tự chọn thiết lập** chạy thu nhỏ 90% + nén JPEG Q95 qua 3 vòng nối tiếp; bấm chip thiết lập trên thanh đầu trang (**Đổi**) để chỉnh chất lượng JPEG 50–100, tỉ lệ 50–100%, số vòng 1–5, thứ tự xử lý hoặc chuyển sang **AI chọn phép thử** (ngân sách mặc định 4 lượt gọi mô hình, tính cả ảnh gốc).
+3. Bấm từng mốc trên **Đường điểm B-Free** hoặc nút bước trước/sau ở khung bên phải để đối chiếu **Song song**, **Trượt** hoặc **Khác biệt ×8** cùng mục đích và ý nghĩa của từng phép đo.
+4. Dùng các nút **THỬ TIẾP** bên dưới để thử nhanh nhánh chỉ nén JPEG, thu nhỏ nhẹ hơn (95%) hoặc **Kiểm tra từng vùng · TruFor** (diễn giải riêng với B-Free).
+5. Mở **Bảng đo**, **Nhật ký**, **CSV ↓** hoặc **JSON ↓** ở góc dưới bên phải để kiểm tra số liệu, mã băm và xuất bằng chứng.
 
 Trong chế độ AI chọn phép thử, mỗi phép thử là một nhánh bắt đầu từ ảnh gốc. Chế độ tự chọn hỗ trợ xử lý nối tiếp qua nhiều vòng. Lệnh dừng có hiệu lực giữa các lượt gọi công cụ. Xem [thiết kế tác tử](docs/AGENT_DESIGN.md).
 
-![So sánh ảnh gốc 1024 × 1024 và ảnh thu nhỏ 922 × 922 cùng điểm B-Free đã đo](docs/images/readme/resize-comparison.jpg)
+![So sánh ảnh gốc 1024 × 1024 và bản sao Vòng 1 kích thước 922 × 922 sau thu nhỏ 90% và nén JPEG Q95 cùng điểm B-Free đã đo](docs/images/readme/resize-comparison.jpg)
 
-*Ví dụ đã lưu: sau khi thu nhỏ, điểm B-Free đổi từ khoảng 0,988 sang 0,272 và đi qua ngưỡng 0,5. Đây là một trường hợp minh họa, không phải kết quả tổng quát về độ chính xác.*
+*Ví dụ đã lưu (Vòng 1: thu nhỏ 90% + nén JPEG Q95): điểm B-Free đổi từ 0,988 ở ảnh gốc 1024 × 1024 xuống 0,099 ở bản sao 922 × 922 và đi qua ngưỡng 0,5. Đây là một trường hợp minh họa, không phải kết quả tổng quát về độ chính xác.*
 
 ## Đọc kết quả đúng cách
 

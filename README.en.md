@@ -8,9 +8,9 @@ AI Image Forensics Assistant is a local research prototype for comparing detecto
 
 > Detector scores are research signals, not verdicts about whether an image is real or fake. A stable score across transformations does not verify an image's origin.
 
-![Vietnamese interface introducing the experiment and its investigation steps](docs/images/readme/investigation-overview.jpg)
+![Vietnamese interface showing the milestone B-Free score track and original-image explanation on the saved example](docs/images/readme/investigation-overview.jpg)
 
-*Interface screenshot showing saved results. Reviewing these steps does not run new inference.*
+*Current interface screenshot with the saved example (1024 × 1024, baseline B-Free score 0.988). Reviewing recorded milestones does not run new inference.*
 
 ## What you can do
 
@@ -21,6 +21,20 @@ AI Image Forensics Assistant is a local research prototype for comparing detecto
 - **Export evidence:** JSON, CSV, dimensions, bytes, transformation history, MSE, and PSNR.
 
 The repository includes the manifest, protocol, and measured results of a frozen **320-image research pilot**, plus an FFT/DCT classifier baseline fitted only on training originals. Dataset images and model weights are not shipped in the repository.
+
+## Key research contributions
+
+1. **Controlled nine-condition benchmark:** Measures B-Free and an FFT/DCT baseline across 192 held-out test images (96 matched real/generated pairs, 1,728 predictions per detector) under repeated JPEG Q85, repeated 90% resizing, operation-order reversal, and matched-size single-pass controls.
+2. **Post-hoc generator-error, ranking, and calibration analysis:** B-Free retains 100.0% balanced accuracy on originals and both JPEG Q85 arms (+0.0 pp, degenerate 95% group-bootstrap CI +0.0 to +0.0), dropping to 95.83% after three 90% resizes and 94.79% after three Q95-then-resize rounds while AUROC remains at least 0.9962. Across resizing/combined conditions, 34 false-negative events occur on 11 unique generated sources (DALL-E 3: 32 events across 9 sources; Midjourney v5: 2 events across 2 sources; Firefly and SDXL: 0 errors; 0 false positives across 96 real images). *Repeated errors on the same source across conditions are not independent observations.*
+3. **Evidence-grounded local assistant and policy replay:** Separates B-Free scores from TruFor manipulation maps, builds deterministic explanations from cited evidence (`E1`, `E2`, ...), and compares fixed (4.00 calls), rule-based (2.54 calls), and local Qwen2.5-1.5B-Instruct (4.00 calls) policies on a 24-source replay (all finding 1/1 reference event, showing no observed LLM advantage).
+
+See the Vietnamese [research write-up](docs/RESEARCH_WRITEUP.md) for full tables and caveats. Reproduce the generator-error and calibration breakdown deterministically from frozen predictions with:
+
+```bash
+.venv/bin/python scripts/analyze_generator_errors.py output/benchmark
+```
+
+*Reproduction note: after upstream cross-platform updates to `forensics/benchmark.py` in `origin/main`, `load_protocol` rejects the Oct 18 frozen `output/benchmark/protocol.json` due to `code_fingerprint` drift; `tests/test_generator_errors.py` verifies deterministic CLI generation on newly frozen studies.*
 
 ## Run the application
 
@@ -56,17 +70,17 @@ The server binds only to the local machine. Images are processed locally by defa
 
 ## Try an investigation
 
-1. **Choose an image** in JPEG, PNG, or WebP format. Limits: 20 MiB, 20 megapixels, and at least 16 pixels per dimension. The backend also reads single-frame BMP/TIFF.
-2. Select **Phân tích ảnh** (Analyze image). The default **AI chọn phép thử** mode measures the original with B-Free, then chooses further tests from recorded observations. The default budget is four model-tool calls, including the original measurement.
-3. Read **Hiểu từng bước** (Understand each step) for the purpose, action, and meaning of each measurement. Back and Next navigation select the corresponding evidence.
-4. For a manual experiment, open **Thiết lập nâng cao → Tự chọn thiết lập** (Advanced settings → Choose settings). Set JPEG quality 50–100, scale 0.5–1.0, and 1–5 rounds; choose operation order when combining transformations.
-5. Open **Xem chi tiết kỹ thuật** (Technical details) to inspect records and export JSON/CSV. An optional TruFor regional scan is interpreted separately from B-Free scores.
+1. **Choose an image** in JPEG, PNG, or WebP format (or select **Hoặc xem ví dụ có kết quả đã lưu** to open the verified sample). Limits: 20 MiB, 20 megapixels, and at least 16 pixels per dimension. The backend also reads single-frame BMP/TIFF.
+2. Select **Phân tích ảnh** (Analyze image). By default, **Tự chọn thiết lập** (Manual settings) runs 3 cumulative rounds of 90% resize + JPEG Q95; click the top-bar config chip (**Đổi**) to adjust JPEG quality 50–100, scale 50–100%, 1–5 rounds, operation order, or switch to **AI chọn phép thử** (Adaptive mode, default budget 4 model calls including the original).
+3. Click milestones along **ĐƯỜNG ĐIỂM B-FREE** (B-Free score track) or the right-rail navigation buttons to inspect **Song song** (Side-by-side), **Trượt** (Slider), or **Khác biệt ×8** (Difference map) alongside each measurement's action and meaning.
+4. Use the **THỬ TIẾP** (Follow-up) chips below to run JPEG-only, gentler 95% resize, or **Kiểm tra từng vùng · TruFor** (interpreted separately from B-Free).
+5. Open **Bảng đo** (Measurements), **Nhật ký** (Ledger), **CSV ↓**, or **JSON ↓** at the bottom right to inspect records, hashes, and export evidence.
 
 Adaptive tests each branch from the original. Manual mode also supports cumulative processing across rounds. Cancellation stops between tool calls. See [agent design](docs/AGENT_DESIGN.md).
 
-![Original and resized images with recorded B-Free scores and dimensions](docs/images/readme/resize-comparison.jpg)
+![Side-by-side comparison of the 1024 × 1024 original and Round 1 922 × 922 copy after 90% resize and JPEG Q95 with measured B-Free scores](docs/images/readme/resize-comparison.jpg)
 
-*In this saved example, resizing from 1024 × 1024 to 922 × 922 changes the B-Free score from approximately 0.988 to 0.272, crossing 0.5. This is one illustrative case, not a general accuracy result.*
+*Saved example (Round 1: 90% resize + JPEG Q95): the B-Free score shifts from 0.988 on the 1024 × 1024 original to 0.099 on the 922 × 922 copy, crossing 0.5. This is one illustrative case, not a general accuracy result.*
 
 ## Interpret the evidence
 
