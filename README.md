@@ -8,7 +8,7 @@ AI Image Forensics Assistant là nguyên mẫu nghiên cứu chạy trên máy c
 
 > Điểm mô hình là tín hiệu phục vụ nghiên cứu, không phải kết luận ảnh thật hay giả. Điểm ổn định qua nhiều phép thử cũng không xác minh được nguồn gốc ảnh.
 
-![Giao diện tiếng Việt hiển thị đường điểm B-Free theo từng mốc và giải thích ảnh gốc trong ví dụ đã lưu](docs/images/readme/investigation-overview.jpg)
+![Giao diện tiếng Việt hiển thị đường điểm B-Free theo từng mốc và giải thích ảnh gốc trong ví dụ đã lưu](docs/images/readme/investigation-overview-direction-a-20261120.jpg)
 
 *Ảnh chụp giao diện hiện tại với ví dụ đã lưu (1024 × 1024, điểm B-Free ảnh gốc 0,988). Xem lại các mốc đã đo không chạy suy luận mới.*
 
@@ -78,7 +78,7 @@ Máy chủ chỉ lắng nghe trên máy cục bộ. Mặc định ảnh được
 
 Trong chế độ AI chọn phép thử, mỗi phép thử là một nhánh bắt đầu từ ảnh gốc. Chế độ tự chọn hỗ trợ xử lý nối tiếp qua nhiều vòng. Lệnh dừng có hiệu lực giữa các lượt gọi công cụ. Xem [thiết kế tác tử](docs/AGENT_DESIGN.md).
 
-![So sánh ảnh gốc 1024 × 1024 và bản sao Vòng 1 kích thước 922 × 922 sau thu nhỏ 90% và nén JPEG Q95 cùng điểm B-Free đã đo](docs/images/readme/resize-comparison.jpg)
+![So sánh ảnh gốc 1024 × 1024 và bản sao Vòng 1 kích thước 922 × 922 sau thu nhỏ 90% và nén JPEG Q95 cùng điểm B-Free đã đo](docs/images/readme/resize-comparison-direction-a-20261120.jpg)
 
 *Ví dụ đã lưu (Vòng 1: thu nhỏ 90% + nén JPEG Q95): điểm B-Free đổi từ 0,988 ở ảnh gốc 1024 × 1024 xuống 0,099 ở bản sao 922 × 922 và đi qua ngưỡng 0,5. Đây là một trường hợp minh họa, không phải kết quả tổng quát về độ chính xác.*
 
