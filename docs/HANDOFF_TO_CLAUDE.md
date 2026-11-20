@@ -46,7 +46,7 @@ Trên máy đã cấu hình, từ thư mục dự án chạy:
 bash scripts/start-with-models.sh
 ```
 
-Hoặc mở `start.command`. Truy cập `http://127.0.0.1:8765`. Máy chủ chỉ bind localhost. Mô hình lần đầu có thể mất thời gian tải vào bộ nhớ; TruFor trên ảnh lớn có thể chạy vài phút. Ảnh tải lên và đầu ra được giữ trong `output/runs/` trên máy.
+Hoặc mở `start.command`. Truy cập `http://127.0.0.1:8766`. Máy chủ chỉ bind localhost. Mô hình lần đầu có thể mất thời gian tải vào bộ nhớ; TruFor trên ảnh lớn có thể chạy vài phút. Ảnh tải lên và đầu ra được giữ trong `output/runs/` trên máy.
 
 `README.md` hướng dẫn thêm cách dùng CLI, tái lập benchmark, dựng báo cáo và khởi tạo môi trường mới. Môi trường ML cùng mô hình đã cài sẵn trên Mac này; thư mục `external/` và `.venv/` có thể bị gitignore nên không mặc định đi theo bản sao mã nguồn.
 

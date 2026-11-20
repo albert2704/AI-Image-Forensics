@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { build, previewLabel } = require("../web/guide.js");
+const { build, previewLabel, answerFor } = require("../web/guide.js");
 const ai = (id, tool, score, extra = {}) => ({ id, tool, score, score_kind: "ai_generation", ...extra });
 const original = (score) => ai("E1", "baseline", score);
 const resized = (score, extra) => ai("E2", "resize_s0.9_r1", score, extra);
@@ -200,4 +200,75 @@ test("baseline lesson explains pretrained detection and strict threshold without
   assert.equal(derivative.decision, "Trên mốc");
   assert.equal(derivative.changed, true);
   assert.match(baseline.nextLabel, /Xem thu nhỏ/);
+});
+test("cumulative first round says it starts from the original, later rounds say they chain", () => {
+  const report = { run_id: "chain", config: { mode: "cumulative" }, variants: [{ id: "original", round: 0, score: .9, width: 100, height: 100 }, { id: "round-1", round: 1, score: .2, width: 90, height: 90 }, { id: "round-2", round: 2, score: .1, width: 81, height: 81 }] };
+  const steps = build({ report, adaptive: false }).steps;
+  const first = steps.find((s) => s.id === "round-1");
+  const second = steps.find((s) => s.id === "round-2");
+  assert.match(first.transformation.history, /trực tiếp từ ảnh gốc/);
+  assert.doesNotMatch(first.text, /vòng trước/);
+  assert.match(second.transformation.history, /ảnh của vòng trước/);
+});
+
+test("answer says the model no longer detects AI when every copy crosses down", () => {
+  const items = [{ id: "original", kind: "baseline", score: .988 }, { id: "round-1", kind: "copy", score: .099, round: 1 }, { id: "round-2", kind: "copy", score: .021, round: 2 }, { id: "round-3", kind: "copy", score: .003, round: 3 }];
+  const answer = answerFor(items, .5, "fixed", "complete");
+  assert.equal(answer.tone, "warn");
+  assert.match(answer.title, /^Không\./);
+  assert.match(answer.title, /xuống dưới ngưỡng/);
+  assert.match(answer.detail, /rơi từ 0,988 xuống 0,099/);
+});
+
+test("answer says the model still detects AI when every copy stays above", () => {
+  const items = [{ id: "original", kind: "baseline", score: .9 }, { id: "round-1", kind: "copy", score: .8, round: 1 }, { id: "round-2", kind: "copy", score: .7, round: 2 }];
+  const answer = answerFor(items, .5, "fixed", "complete");
+  assert.equal(answer.tone, "info");
+  assert.match(answer.title, /^Có\./);
+  assert.match(answer.title, /vẫn trên ngưỡng/);
+  assert.match(answer.detail, /vẫn phát hiện tín hiệu AI/);
+});
+
+test("answer is partial when only some copies keep the signal", () => {
+  const items = [{ id: "original", kind: "baseline", score: .9 }, { id: "round-1", kind: "copy", score: .8, round: 1 }, { id: "round-2", kind: "copy", score: .2, round: 2 }, { id: "round-3", kind: "copy", score: .1, round: 3 }];
+  const answer = answerFor(items, .5, "fixed", "complete");
+  assert.match(answer.title, /^Một phần\./);
+  assert.match(answer.title, /1 trong 3 bản sao vẫn trên ngưỡng/);
+});
+
+test("answer stays negative when the original was already below the threshold", () => {
+  const items = [{ id: "original", kind: "baseline", score: .2 }, { id: "round-1", kind: "copy", score: .1, round: 1 }];
+  const answer = answerFor(items, .5, "fixed", "complete");
+  assert.match(answer.title, /^Không\./);
+  assert.match(answer.title, /đều dưới ngưỡng/);
+  assert.match(answer.detail, /không phát hiện tín hiệu AI/);
+});
+
+test("answer is affirmative when copies rise above a below-threshold original", () => {
+  const items = [{ id: "original", kind: "baseline", score: .2 }, { id: "round-1", kind: "copy", score: .9, round: 1 }, { id: "round-2", kind: "copy", score: .8, round: 2 }];
+  const answer = answerFor(items, .5, "fixed", "complete");
+  assert.match(answer.title, /^Có\./);
+  assert.match(answer.title, /vượt ngưỡng/);
+});
+
+test("a score exactly at the threshold counts as below in the answer", () => {
+  const items = [{ id: "original", kind: "baseline", score: .5 }, { id: "round-1", kind: "copy", score: .5, round: 1 }];
+  const answer = answerFor(items, .5, "fixed", "complete");
+  assert.match(answer.title, /^Không\./);
+  assert.match(answer.title, /đều dưới ngưỡng/);
+  assert.doesNotMatch(answer.title, /vẫn trên ngưỡng/);
+});
+
+test("adaptive answer counts tests, not rounds", () => {
+  const items = [{ id: "E1", kind: "baseline", score: .9, tool: "baseline" }, { id: "E2", kind: "copy", score: .2, tool: "jpeg_q85_r3" }];
+  const answer = answerFor(items, .5, "adaptive", "complete");
+  assert.match(answer.title, /1 phép thử xuống dưới ngưỡng/);
+  assert.match(answer.detail, /Ở phép thử/);
+});
+
+test("partial status prefixes the answer without hiding the measurement", () => {
+  const items = [{ id: "original", kind: "baseline", score: .9 }, { id: "round-1", kind: "copy", score: .8, round: 1 }];
+  const answer = answerFor(items, .5, "fixed", "partial");
+  assert.match(answer.title, /^Kết quả một phần\./);
+  assert.match(answer.title, /vẫn trên ngưỡng/);
 });

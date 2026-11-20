@@ -251,13 +251,13 @@ def freeze_protocol(manifest_path, run_dir, config=None):
     return protocol
 
 
-def load_protocol(path, verify_sources=False):
+def load_protocol(path, verify_sources=False, *, verify_code=True):
     path = Path(path)
     protocol = json.loads(path.read_text(encoding="utf-8"))
     stored_hash = protocol.get("protocol_hash")
     if stored_hash != _digest({key: value for key, value in protocol.items() if key != "protocol_hash"}):
         raise ValueError("Frozen protocol was altered or corrupted.")
-    if protocol["code_fingerprint"] != _code_fingerprint():
+    if verify_code and protocol["code_fingerprint"] != _code_fingerprint():
         raise ValueError("Code or runtime versions changed since protocol freeze; use a new protocol.")
     if _file_hash(protocol["manifest_path"]) != protocol["manifest_sha256"]:
         raise ValueError("Manifest changed after protocol freeze.")
