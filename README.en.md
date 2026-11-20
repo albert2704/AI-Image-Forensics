@@ -8,7 +8,7 @@ AI Image Forensics Assistant is a local research prototype for comparing detecto
 
 > Detector scores are research signals, not verdicts about whether an image is real or fake. A stable score across transformations does not verify an image's origin.
 
-![Vietnamese interface showing the milestone B-Free score track and original-image explanation on the saved example](docs/images/readme/investigation-overview.jpg)
+![Vietnamese interface showing the milestone B-Free score track and original-image explanation on the saved example](docs/images/readme/investigation-overview-direction-a-20261120.jpg)
 
 *Current interface screenshot with the saved example (1024 × 1024, baseline B-Free score 0.988). Reviewing recorded milestones does not run new inference.*
 
@@ -78,7 +78,7 @@ The server binds only to the local machine. Images are processed locally by defa
 
 Adaptive tests each branch from the original. Manual mode also supports cumulative processing across rounds. Cancellation stops between tool calls. See [agent design](docs/AGENT_DESIGN.md).
 
-![Side-by-side comparison of the 1024 × 1024 original and Round 1 922 × 922 copy after 90% resize and JPEG Q95 with measured B-Free scores](docs/images/readme/resize-comparison.jpg)
+![Side-by-side comparison of the 1024 × 1024 original and Round 1 922 × 922 copy after 90% resize and JPEG Q95 with measured B-Free scores](docs/images/readme/resize-comparison-direction-a-20261120.jpg)
 
 *Saved example (Round 1: 90% resize + JPEG Q95): the B-Free score shifts from 0.988 on the 1024 × 1024 original to 0.099 on the 922 × 922 copy, crossing 0.5. This is one illustrative case, not a general accuracy result.*
 
