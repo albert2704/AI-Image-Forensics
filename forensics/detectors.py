@@ -190,6 +190,10 @@ def choose_detector(config: dict | None = None):
     config = config or {}
     def setting(name, short, default=None):
         return config.get(name, config.get(short, os.environ.get(name, default)))
+    remote_url = setting("BFREE_REMOTE_URL", "remote_url")
+    if remote_url:
+        from .remote import choose_remote_detector
+        return choose_remote_detector(remote_url, setting("BFREE_REMOTE_SECRET", "remote_secret"), setting("BFREE_REMOTE_TIMEOUT", "remote_timeout"))
     repo = setting("BFREE_REPO", "repo")
     if not repo:
         return UnavailableDetector("Set BFREE_REPO and install the official B-Free checkpoint to enable AI scoring.")

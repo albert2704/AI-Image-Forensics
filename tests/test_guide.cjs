@@ -78,6 +78,15 @@ test("baseline-only completion never claims robustness", () => {
   }
 });
 
+test("a failed experiment shell without variants reports insufficient evidence", () => {
+  const result = build({ report: { run_id: "failed-3", variants: [], config: { threshold: .5 } }, adaptive: false, hasImage: true });
+  assert.equal(result.steps.length, 1);
+  assert.equal(result.initialStepId, "finding");
+  assert.match(result.finding.title, /Chưa đủ phép đo/);
+  assert.equal(result.finding.flips, null);
+  assert.doesNotMatch(result.origin, /Đã lưu/);
+});
+
 test("failed baseline prevents derivative-only comparison", () => {
   const result = finding(investigation([original(null), resized(.2)]));
   assert.match(result.title, /Chưa đủ phép đo/);
@@ -192,7 +201,6 @@ test("baseline lesson explains pretrained detection and strict threshold without
   assert.equal(derivative.changed, true);
   assert.match(baseline.nextLabel, /Xem thu nhỏ/);
 });
-
 test("cumulative first round says it starts from the original, later rounds say they chain", () => {
   const report = { run_id: "chain", config: { mode: "cumulative" }, variants: [{ id: "original", round: 0, score: .9, width: 100, height: 100 }, { id: "round-1", round: 1, score: .2, width: 90, height: 90 }, { id: "round-2", round: 2, score: .1, width: 81, height: 81 }] };
   const steps = build({ report, adaptive: false }).steps;

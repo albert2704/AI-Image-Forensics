@@ -1,6 +1,7 @@
 "use strict";
 
 (() => {
+  const rules = globalThis.forensicsRules;
   const $ = (id) => document.getElementById(id);
   const state = {
     file: null, base64: null, objectURL: null, width: null, height: null,
@@ -89,6 +90,7 @@
     "Analysis not found.": "Không tìm thấy thí nghiệm.",
     "The recorded example is not installed.": "Chưa có ví dụ đã lưu trên máy.",
     "Invalid recorded example.": "Ví dụ đã lưu không hợp lệ.",
+    "The recorded example is read-only. Analyze your own image to run a regional scan.": "Ví dụ đã lưu ở chế độ chỉ đọc. Hãy phân tích ảnh của bạn để kiểm tra từng vùng.",
     "Another model request is already running. Try again when it finishes.": "Một yêu cầu mô hình khác đang chạy. Hãy thử lại sau khi hoàn tất.",
     "Choose a nonempty image smaller than 20 MiB.": "Hãy chọn ảnh có dữ liệu và dung lượng dưới 20 MiB.",
     "Use a JPEG, PNG, WebP, TIFF, or BMP image.": "Hãy dùng ảnh JPEG, PNG, WebP, TIFF hoặc BMP.",
@@ -246,6 +248,7 @@
   function renderTrack(model) {
     const stops = trackStops(model);
     const chart = $("track-chart");
+    chart.setAttribute("aria-label", adaptiveMode() ? "Đường điểm B-Free qua các phép thử" : rules.trajectoryTitle(state.report?.config?.mode));
     const width = Math.max(280, chart.clientWidth || 600);
     const height = 96, top = 10, bottom = 7;
     const x = (index) => stops.length ? (index + .5) * width / stops.length : width / 2;
@@ -927,6 +930,9 @@
     if (config.operation !== "jpeg" && numeric(config.scale)) parts.push(`${Math.round(config.scale * 100)}% mỗi vòng`);
     if (config.operation === "combined") parts.push(config.order === "jpeg-resize" ? "JPEG → đổi cỡ" : "Đổi cỡ → JPEG");
     parts.push(`ngưỡng > ${numberText(threshold, 2)}`);
+    const variants = report.variants || [];
+    const scoredCount = variants.filter((item) => numeric(item.score) && item.score >= 0 && item.score <= 1).length;
+    parts.push(rules.completionTag(Math.max(0, variants.length - 1), scoredCount, variants.length));
     $("record-config").textContent = parts.join(" · ");
     $("run-id").textContent = report.run_id || "Chưa có dữ liệu";
     $("source-hash").textContent = report.image?.sha256 || "Chưa có dữ liệu";
@@ -1015,8 +1021,7 @@
     if (summary) {
       $("agent-summary-title").textContent = translate(summary.title) || "Kết quả đã ghi nhận";
       $("agent-facts").replaceChildren(...(summary.facts || []).map((fact) => { const paragraph = el("p", translate(fact.text)); paragraph.append(evidenceLinks(fact.evidence_ids)); return paragraph; }));
-      const reasons = { budget_exhausted: "Đã dùng hết số lượt gọi mô hình cho phép.", planner_finished: "AI đã chọn kết thúc phân tích.", cancelled: "Đã dừng theo yêu cầu của bạn.", planner_failed: "Mô hình chọn phép thử gặp lỗi; các kết quả đã có vẫn được giữ lại.", original_detector_failed: "Phép đo ảnh gốc gặp lỗi." };
-      $("agent-stop").textContent = reasons[summary.stop_reason] || `Đã dừng: ${summary.stop_reason || "chưa rõ lý do"}.`;
+      $("agent-stop").textContent = rules.stopReasonText(summary.stop_reason);
       $("agent-warnings").replaceChildren(...(summary.warnings || []).map((warning) => el("li", translate(warning))));
     }
     const error = investigation.error || investigation.planner_error;

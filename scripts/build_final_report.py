@@ -7,6 +7,8 @@ from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image
 
+from report_assets import markdown_image
+
 ROOT = Path(__file__).resolve().parents[1]
 STUDY = ROOT / "output/benchmark"
 OUTPUT = ROOT / "output/pdf/AI_Image_Forensics_Research_Report.pdf"
@@ -225,7 +227,7 @@ def render(chapters):
                 figure = Image(content, width=width, height=height)
                 figure.keepWithNext = True
                 story.append(figure)
-                markdown.append(f"![Measured figure](../{Path(content).relative_to(ROOT)})\n")
+                markdown.append(markdown_image("Measured figure", content, ROOT))
             elif kind == "regional":
                 regional = read(ROOT / "output/model-verification/trufor-small-reference-check.json")
                 files = [ROOT / "external/TruFor/test_docker/images/tampered2.png", Path(regional["heatmap_path"]), Path(regional["reliability_path"]), Path(regional["overlay_path"])]
@@ -233,7 +235,7 @@ def render(chapters):
                               [Paragraph(label, styles["caption"]) for label in ["Source", "Anomaly", "Reliability", "Overlay"]]], colWidths=[126]*4)
                 grid.keepWithNext = True
                 story.extend([grid, Spacer(1, 8)])
-                markdown.extend(f"![{label}]({path})\n" for path, label in zip(files, ["Source", "Anomaly", "Reliability", "Overlay"]))
+                markdown.extend(markdown_image(label, path, ROOT) for path, label in zip(files, ["Source", "Anomaly", "Reliability", "Overlay"]))
             else:
                 story.append(Paragraph(escape(content), styles[kind]))
                 markdown.append(("### " if kind == "heading" else "# " if kind == "title" else "") + content + "\n")

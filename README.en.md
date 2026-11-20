@@ -20,36 +20,39 @@ AI Image Forensics Assistant is a local research prototype for comparing detecto
 - **Let a local model choose tests:** Qwen2.5-1.5B-Instruct selects allowed tools within a fixed budget.
 - **Export evidence:** JSON, CSV, dimensions, bytes, transformation history, MSE, and PSNR.
 
-The project also includes a frozen **320-image research pilot** and an FFT/DCT classifier baseline fitted only on training originals.
+The repository includes the manifest, protocol, and measured results of a frozen **320-image research pilot**, plus an FFT/DCT classifier baseline fitted only on training originals. Dataset images and model weights are not shipped in the repository.
 
 ## Run the application
 
 ### On the configured development machine
 
-The isolated Python environment and models are already installed on the current development Mac. Double-click `start.command`, or run from the project directory:
+The isolated Python environment and models are installed on the original development machine. On any checkout, run `python scripts/doctor.py` first to check which pieces are present. Then double-click `start.command`, or run from the project directory:
 
 ```bash
 bash scripts/start-with-models.sh
 ```
 
-Open **http://127.0.0.1:8766**.
+Open **http://127.0.0.1:8765**. To use port 8766, append `--port 8766` to the startup command and open that address.
 
 Interactive B-Free and TruFor adapters default to CPU. The local planner automatically uses Apple MPS when available. The first analysis loads models; large regional scans can take several minutes.
 
 ### On a new machine
 
-Install the basic transformation and distortion-measurement workflow:
+On Linux or macOS, run `bash scripts/bootstrap.sh` to create `.venv` and check the environment. Or install the basic transformation and distortion-measurement workflow by hand:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+python scripts/doctor.py
 python -m forensics.server
 ```
 
+On Windows, run `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`, then `run.bat`. See the [platform matrix](docs/PLATFORMS.md) and pinned inference packages in `requirements-models.txt`. The doctor lists available images, model directories, run artifacts, and missing components. The recorded demo serves from `output/model-verification/` and is read-only.
+
 Follow [MODEL_SETUP.md](docs/MODEL_SETUP.md) for B-Free, TruFor, and planner inference. Without configured models, transformations and distortion measurements still work, but detector scores remain missing. The application does not substitute heuristic scores or fabricated maps.
 
-The server binds only to the local machine. Uploaded images and generated outputs stay in `output/runs/`; delete a run directory to remove its saved source and derivatives.
+The server binds only to the local machine. Images are processed locally by default; configuring a Modal endpoint sends images to that service for inference. Uploaded images and generated outputs stay in `output/runs/`; delete a run directory to remove its saved source and derivatives.
 
 ## Try an investigation
 
@@ -140,6 +143,16 @@ python -m forensics.benchmark freeze data/benchmark/manifest.csv \
 
 Keep the delivered protocol intact. The runner rejects changed source files, model identity, preprocessing, or frozen implementation. The 24-source policy replay and its exact input snapshot live in `output/agent-evaluation/`. Replay measures test selection and tool-call cost; it is not an end-to-end latency benchmark or an authenticity-accuracy comparison.
 
+## Optional inference on Modal
+
+Three optional Modal jobs add remote inference without replacing the application backend. Start with the [Modal setup guide](docs/MODAL_SETUP.md), which covers installation order and the environment variables the application reads.
+
+- [Batch scoring](docs/MODAL_BATCH.md) re-scores the 192 test images under nine conditions on CUDA. CUDA changes the detector fingerprint, so this is a new, separately labelled study rather than a continuation of the delivered MPS pilot.
+- [B-Free endpoint](docs/MODAL_ENDPOINT.md) scores an upload through an authenticated endpoint without requiring the user to install PyTorch or the checkpoint locally.
+- [TruFor endpoint](docs/MODAL_TRUFOR.md) serves regional scans; its checkpoint is downloaded and verified when the private image is built.
+
+With endpoints unset, no image leaves the machine. With the corresponding endpoint configured, uploaded images and transformed variants are sent to Modal for scoring.
+
 ## Documentation and checks
 
 | Topic | References |
@@ -148,7 +161,7 @@ Keep the delivered protocol intact. The runner rejects changed source files, mod
 | Measured results | [Benchmark](docs/BENCHMARK_RESULTS.md) · [Agent policy](docs/AGENT_RESULTS.md) |
 | Design and protocols | [Agent](docs/AGENT_DESIGN.md) · [Experiments](docs/EXPERIMENT_PROTOCOL.md) · [Benchmark](docs/BENCHMARK_PROTOCOL.md) |
 | Models and data | [Model setup](docs/MODEL_SETUP.md) · [Dataset](docs/DATASET.md) |
-| Interface | [UI research](docs/UI_RESEARCH.md) · [Agent UI checks](docs/AGENT_UI_QA.md) |
+| Interface | [UI research](docs/UI_RESEARCH.md) · [Agent UI checks](docs/AGENT_UI_QA.md) · [Guided walkthrough checks](docs/GUIDED_UI_QA.md) |
 | Follow-up study | [Single-pass resize × JPEG breakpoint grid](docs/BREAKPOINT_PROTOCOL.md) — specified, not yet scored |
 
 Further evidence lives in `output/verification/processing-check.json` and `output/model-verification/`, including measured B-Free trajectories, official-reference logit checks, and TruFor maps. One official demo's three-round cumulative resize/JPEG trajectory changes from 0.988232 to 0.002742; this is illustrative, not benchmark performance. Four upstream B-Free demo logits matched the supplied reference within 0.000017.
@@ -157,6 +170,7 @@ Run software checks:
 
 ```bash
 python -m unittest discover -s tests -v
+node --test tests/test_guide.cjs
 ```
 
 Rebuild the report after measured results and figures are complete:

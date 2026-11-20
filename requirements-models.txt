@@ -1,0 +1,28 @@
+# Pinned environment for real detector and planner inference.
+#
+# Verified on Python 3.12 with the versions below (see
+# output/model-verification/requirements-installed.txt for the full freeze).
+# These pins are what the frozen protocols were fingerprinted against; changing
+# them changes the detector fingerprint and blocks resuming an existing journal.
+#
+# Install after the base requirements:
+#   python -m pip install -r requirements-models.txt
+#
+# Device selection, not this file, decides vendor wheels:
+#   CPU          pip install -r requirements-models.txt
+#   NVIDIA CUDA  python -m pip install --index-url https://download.pytorch.org/whl/cu121 torch==2.5.1 torchvision==0.20.1
+#                then the remaining pins.
+#   Apple MPS    the default macOS wheels already include MPS support.
+torch==2.5.1
+torchvision==0.20.1
+timm==1.0.12
+transformers==4.43.4
+numpy==1.26.4
+Pillow>=10.4,<13
+PyYAML
+pandas
+tqdm
+scikit-learn
+matplotlib==3.9.2
+huggingface_hub==0.36.2
+requests
