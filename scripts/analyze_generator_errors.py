@@ -22,6 +22,7 @@ from matplotlib.patches import Patch
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from forensics import evaluation
 from forensics.benchmark import DEFAULT_CONDITIONS, SPLITS, load_protocol
 from forensics.evaluation import BASELINE, evaluate_rows
 
@@ -280,7 +281,7 @@ def analyze_study(study: Path, split: str = "test") -> dict[str, Any]:
     """Run canonical generator-error and calibration analysis for a frozen study."""
     study = Path(study)
     protocol_path = study / "protocol.json"
-    protocol = load_protocol(protocol_path)
+    protocol = load_protocol(protocol_path, verify_code=False)
     condition_names, source_by_id, family_by_group = _validate_protocol_and_groups(protocol, split)
     families = sorted(set(family_by_group.values()))
     groups_per_family = {
@@ -414,6 +415,8 @@ def analyze_study(study: Path, split: str = "test") -> dict[str, Any]:
             "protocol_hash": protocol["protocol_hash"],
             "protocol_json_sha256": _sha256_file(protocol_path),
             "manifest_sha256": protocol["manifest_sha256"],
+            "script_sha256": _sha256_file(Path(__file__).resolve()),
+            "evaluator_sha256": _sha256_file(Path(evaluation.__file__).resolve()),
             "detectors": detector_provenance,
         },
         "counts": {

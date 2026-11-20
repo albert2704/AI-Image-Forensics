@@ -115,6 +115,34 @@ class BenchmarkTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "altered"):
             load_protocol(path)
 
+    def test_stale_code_fingerprint_requires_explicit_opt_out_and_keeps_integrity_checks(self):
+        path, protocol = self.freeze()
+        archived = copy.deepcopy(protocol)
+        archived["code_fingerprint"]["files"]["benchmark.py"] = "0" * 64
+        body = {key: value for key, value in archived.items() if key != "protocol_hash"}
+        archived["protocol_hash"] = hashlib.sha256(
+            json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
+        ).hexdigest()
+        path.write_text(json.dumps(archived), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "Code or runtime versions changed"):
+            load_protocol(path)
+        with self.assertRaises(TypeError):
+            load_protocol(path, False, False)
+        self.assertEqual(load_protocol(path, verify_code=False), archived)
+
+        manifest_bytes = self.manifest.read_bytes()
+        self.manifest.write_bytes(manifest_bytes + b"\n")
+        with self.assertRaisesRegex(ValueError, "Manifest changed"):
+            load_protocol(path, verify_code=False)
+        self.manifest.write_bytes(manifest_bytes)
+
+        tampered = copy.deepcopy(archived)
+        tampered["threshold"] = 0.7
+        path.write_text(json.dumps(tampered), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "altered"):
+            load_protocol(path, verify_code=False)
+
     def test_render_matches_pipeline_history_and_matched_size_controls(self):
         image, _ = pipeline.decode_image((self.root / self.rows[0]["path"]).read_bytes())
         cumulative = next(item for item in DEFAULT_CONDITIONS if item["name"] == "combined_q95_s0.9_r3")

@@ -34,7 +34,7 @@ See the Vietnamese [research write-up](docs/RESEARCH_WRITEUP.md) for full tables
 .venv/bin/python scripts/analyze_generator_errors.py output/benchmark
 ```
 
-*Reproduction note: after upstream cross-platform updates to `forensics/benchmark.py` in `origin/main`, `load_protocol` rejects the Oct 18 frozen `output/benchmark/protocol.json` due to `code_fingerprint` drift; `tests/test_generator_errors.py` verifies deterministic CLI generation on newly frozen studies.*
+*This command reads saved predictions and checks the frozen protocol and manifest hashes. It does not resume inference or alter the frozen study identity.*
 
 ## Run the application
 

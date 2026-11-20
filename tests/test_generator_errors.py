@@ -16,7 +16,8 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from forensics.benchmark import DEFAULT_CONDITIONS, freeze_protocol
+from forensics import evaluation
+from forensics.benchmark import DEFAULT_CONDITIONS, freeze_protocol, load_protocol
 from forensics.evaluation import evaluate_rows
 from scripts.analyze_generator_errors import analyze_study
 
@@ -125,6 +126,14 @@ class GeneratorErrorAnalysisTests(unittest.TestCase):
         report = analyze_study(self.study, split="test")
         self.assertEqual(report["provenance"]["protocol_hash"], self.protocol["protocol_hash"])
         self.assertEqual(report["provenance"]["manifest_sha256"], self.protocol["manifest_sha256"])
+        self.assertEqual(
+            report["provenance"]["script_sha256"],
+            hashlib.sha256((ROOT / "scripts" / "analyze_generator_errors.py").read_bytes()).hexdigest(),
+        )
+        self.assertEqual(
+            report["provenance"]["evaluator_sha256"],
+            hashlib.sha256(Path(evaluation.__file__).read_bytes()).hexdigest(),
+        )
         self.assertEqual(report["provenance"]["threshold"], 0.5)
         self.assertEqual(report["provenance"]["split"], "test")
         self.assertEqual(report["counts"]["matched_groups"], 4)
@@ -269,6 +278,44 @@ class GeneratorErrorAnalysisTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "Matched group"):
             analyze_study(unmatched_dir)
+
+    def test_archived_protocol_with_stale_code_fingerprint_loads_with_integrity_checks(self):
+        protocol_path = self.study / "protocol.json"
+        archived = json.loads(protocol_path.read_text(encoding="utf-8"))
+        archived["code_fingerprint"]["files"]["benchmark.py"] = "0" * 64
+        body = {key: value for key, value in archived.items() if key != "protocol_hash"}
+        archived["protocol_hash"] = hashlib.sha256(
+            json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
+        ).hexdigest()
+        protocol_path.write_text(json.dumps(archived), encoding="utf-8")
+        self.protocol = archived
+        self._build_predictions()
+
+        with self.assertRaisesRegex(ValueError, "Code or runtime versions changed"):
+            load_protocol(protocol_path)
+
+        report = analyze_study(self.study, split="test")
+        self.assertEqual(report["provenance"]["protocol_hash"], archived["protocol_hash"])
+        self.assertEqual(
+            report["provenance"]["script_sha256"],
+            hashlib.sha256((ROOT / "scripts" / "analyze_generator_errors.py").read_bytes()).hexdigest(),
+        )
+        self.assertEqual(
+            report["provenance"]["evaluator_sha256"],
+            hashlib.sha256(Path(evaluation.__file__).read_bytes()).hexdigest(),
+        )
+
+        manifest_bytes = self.manifest.read_bytes()
+        self.manifest.write_bytes(manifest_bytes + b"\n")
+        with self.assertRaisesRegex(ValueError, "Manifest changed"):
+            analyze_study(self.study, split="test")
+        self.manifest.write_bytes(manifest_bytes)
+
+        tampered = json.loads(protocol_path.read_text(encoding="utf-8"))
+        tampered["threshold"] = 0.7
+        protocol_path.write_text(json.dumps(tampered), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "altered"):
+            analyze_study(self.study, split="test")
 
 
 if __name__ == "__main__":

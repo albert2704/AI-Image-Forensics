@@ -34,7 +34,7 @@ Chi tiết đầy đủ bằng tiếng Việt nằm tại [Báo cáo nghiên c�
 .venv/bin/python scripts/analyze_generator_errors.py output/benchmark
 ```
 
-*Lưu ý tái lập: sau khi `origin/main` cập nhật `forensics/benchmark.py` cho đa nền tảng, `load_protocol` từ chối `output/benchmark/protocol.json` (đóng băng ngày 18/10) do khác `code_fingerprint`; kiểm thử `tests/test_generator_errors.py` xác minh tính xác định trên giao thức mới đóng băng.*
+*Lệnh này chỉ đọc các dự đoán đã lưu và kiểm tra tính toàn vẹn của giao thức cùng manifest đã đóng băng. Lệnh không chạy lại suy luận mới và không làm thay đổi định danh nghiên cứu gốc.*
 
 ## Chạy ứng dụng
 

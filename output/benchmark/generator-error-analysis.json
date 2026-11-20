@@ -8,6 +8,8 @@
     "protocol_hash": "1c974e78ed2d391de1cd1897ac2513c757b2016917d621e3f38c97362ef5aafa",
     "protocol_json_sha256": "6bc816a1103ad4bc6a4529b9c5568de9b85c44a83da77974f2866066c9805149",
     "manifest_sha256": "fdaae67c8593aa126e69fd9da0b9e11ff5542fd89ac42ca4fe36c326ab038ca5",
+    "script_sha256": "44427e4ac4394e4e158c8c5c78da5ee6fc4a7e9a4843d672e715fa7682abe025",
+    "evaluator_sha256": "8a4f01d158dfd37278854e043bba01d2a5d3b82c1a4445b69fabad4dd9101aee",
     "detectors": {
       "bfree": {
         "predictions_jsonl": "results/bfree/predictions.jsonl",
