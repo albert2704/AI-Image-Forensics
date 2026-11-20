@@ -11,9 +11,9 @@ Completed pilot | 18 October 2026 | Reproducible measurements and research limit
 
 This project studies how repeated image processing changes AI-generation detector evidence. A local prototype integrates B-Free for whole-image generation scores and TruFor for distinct local-manipulation maps. A controlled pilot contains 320 released images: 160 real photographs and 160 generated images across four generators, grouped by matched source/prompt. A 64/64/192 training/validation/test split prevents matched pairs from crossing splits. Nine prespecified image conditions yield 1,728 held-out predictions per detector. B-Free is compared with a train-only FFT/DCT logistic-regression baseline.
 
-B-Free balanced accuracy changed from 100.0% on originals to 100.0% after three JPEG quality-85 encodes. The paired change was +0.0 percentage points (95% group-bootstrap interval +0.0 to +0.0). This interval is degenerate because no observed group changed the endpoint; it does not establish zero uncertainty on new data.
+B-Free balanced accuracy changed from 100.0% on originals to 100.0% after three JPEG quality-85 encodes. The paired change was +0.0 percentage points (95% group-bootstrap interval +0.0 to +0.0). This interval is degenerate because no observed group changed the endpoint; it does not establish zero uncertainty on new data. Post-hoc analysis finds that resizing-related threshold misses concentrate in DALL-E 3. Aggregate AUROC remains at least 0.9962 while balanced accuracy falls to 94.79%. Calibration diagnostics also change under processing. These are exploratory findings on the same held-out sources, rather than independent experiments.
 
-A small local Qwen model selects allowed investigation tools from observed measurements, under a four-call default budget. Its factual report is calculated from evidence records rather than generated freely. A separate 24-source score-replay experiment compares fixed, rule-based and language-model policies. The contribution is a reproducible measurement and investigation system; the study does not establish universal detection accuracy, calibrated authenticity probabilities or superiority of an AI agent.
+A small local Qwen model selects allowed investigation tools from observed measurements, under a four-call default budget. Its factual report is calculated from evidence records rather than generated freely. A separate 24-source score-replay experiment compares fixed, rule-based and language-model policies. The contribution is a reproducible measurement, error/calibration analysis and investigation system; the study does not establish universal detection accuracy, calibrated authenticity probabilities, causal generator attribution or superiority of an AI agent.
 
 ### Research questions
 
@@ -105,6 +105,50 @@ Figure 1. Measured balanced accuracy and AUROC on the common 192-image test set.
 ![Measured figure](../output/benchmark/figures/paired_balanced_accuracy_changes.png)
 
 Figure 2. Paired changes from original balanced accuracy, with 95% group-bootstrap intervals. Only JPEG quality-85 round 3 is the prespecified primary endpoint; other intervals are descriptive.
+
+### Post-hoc exploratory error, ranking and calibration analysis
+
+The analysis uses 192 held-out images in 96 matched groups, with 24 generated images and 24 paired real references per generator. Every condition uses the same sources and the frozen decision rule `score > 0.5`. Equality is negative. These post-hoc results are descriptive secondary findings.
+
+**Generator concentration of threshold misses.** B-Free records zero false positives among 96 real images in each condition. Original and both JPEG Q85 conditions also have zero false negatives. The six resizing or combined conditions produce 34 false-negative events involving 11 distinct generated images. DALL-E 3 accounts for 32 events involving nine images. Midjourney v5 accounts for two events involving two images. Repeated errors on one source are not independent observations.
+
+All eight misses after three resizes are DALL-E 3 images. This reduces balanced accuracy within that matched stratum to 83.33%, compared with 95.83% overall. Firefly and SDXL have zero errors in every condition. FFT/DCT errors span both classes and all four matched strata. The table reports counts per condition, with 24 generated images and 24 real references per stratum.
+
+| Condition | B-Free FN (DALL-E 3 / Firefly / MJ-v5 / SDXL) | B-Free FP | B-Free DALL-E 3 bAcc | B-Free overall bAcc | FFT/DCT FN (DALL-E 3 / Firefly / MJ-v5 / SDXL) | FFT/DCT FP (DALL-E 3 / Firefly / MJ-v5 / SDXL) | FFT/DCT overall bAcc |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Original | 0 (0 / 0 / 0 / 0) | 0 | 100.00% | 100.00% | 23 (8 / 6 / 5 / 4) | 28 (9 / 7 / 4 / 8) | 73.44% |
+| JPEG Q85 x1 | 0 (0 / 0 / 0 / 0) | 0 | 100.00% | 100.00% | 23 (8 / 6 / 5 / 4) | 28 (9 / 7 / 4 / 8) | 73.44% |
+| JPEG Q85 x3 | 0 (0 / 0 / 0 / 0) | 0 | 100.00% | 100.00% | 23 (8 / 6 / 5 / 4) | 28 (9 / 7 / 4 / 8) | 73.44% |
+| Resize 90% x1 | 1 (1 / 0 / 0 / 0) | 0 | 97.92% | 99.48% | 23 (8 / 6 / 5 / 4) | 28 (9 / 7 / 4 / 8) | 73.44% |
+| Resize 90% x3 | 8 (8 / 0 / 0 / 0) | 0 | 83.33% | 95.83% | 25 (8 / 6 / 7 / 4) | 27 (8 / 7 / 4 / 8) | 72.92% |
+| Resize + Q95 x1 | 1 (1 / 0 / 0 / 0) | 0 | 97.92% | 99.48% | 24 (8 / 6 / 6 / 4) | 28 (9 / 7 / 4 / 8) | 72.92% |
+| Resize + Q95 x3 | 8 (7 / 0 / 1 / 0) | 0 | 85.42% | 95.83% | 25 (8 / 6 / 7 / 4) | 27 (8 / 7 / 4 / 8) | 72.92% |
+| Q95 + resize x3 | 10 (9 / 0 / 1 / 0) | 0 | 81.25% | 94.79% | 25 (8 / 6 / 7 / 4) | 27 (8 / 7 / 4 / 8) | 72.92% |
+| Matched single pass | 6 (6 / 0 / 0 / 0) | 0 | 87.50% | 96.88% | 25 (8 / 6 / 7 / 4) | 28 (9 / 7 / 4 / 8) | 72.40% |
+
+![Measured figure](../output/benchmark/figures/generator_error_breakdown.png)
+
+Figure 2a. Held-out threshold errors (`score > 0.5`, equality negative) across the nine conditions, decomposed by matched generator family (`96` matched groups; `24` generated images and `24` paired real references per family).
+
+**Ranking remains strong while fixed-threshold performance declines.** B-Free AUROC is 0.9962 after three resizes, compared with 1.0000 on originals, while balanced accuracy declines to 95.83%. Across the four round-3 resizing and combined conditions, DALL-E 3 stratum AUROC is 0.9861 to 0.9878 and balanced accuracy is 81.25% to 87.50%. These results are consistent with downward score shifts across the fixed threshold while ranking remains strong. Ranking is not unchanged, and the analysis does not establish a calibrated replacement threshold. No threshold was tuned on the test set.
+
+**Calibration diagnostics change even when decisions do not.** After three JPEG Q85 encodes, B-Free retains 100% balanced accuracy and 1.0000 AUROC. ECE nevertheless rises from 0.0191 to 0.0256, Brier score from 0.0018 to 0.0031, and NLL from 0.0201 to 0.0274. Resizing produces larger changes, as shown below. ECE uses ten equal-width bins of positive-class scores. These diagnostics do not validate model sigmoids as authenticity probabilities.
+
+| Condition | B-Free AUROC | B-Free Brier | B-Free NLL | B-Free ECE | FFT/DCT AUROC | FFT/DCT Brier | FFT/DCT NLL | FFT/DCT ECE |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Original | 1.0000 | 0.0018 | 0.0201 | 0.0191 | 0.8040 | 0.1872 | 0.6322 | 0.1100 |
+| JPEG Q85 x1 | 1.0000 | 0.0029 | 0.0266 | 0.0248 | 0.8021 | 0.1885 | 0.6350 | 0.1181 |
+| JPEG Q85 x3 | 1.0000 | 0.0031 | 0.0274 | 0.0256 | 0.8010 | 0.1890 | 0.6363 | 0.1184 |
+| Resize 90% x1 | 0.9998 | 0.0060 | 0.0311 | 0.0197 | 0.8028 | 0.1870 | 0.6330 | 0.1110 |
+| Resize 90% x3 | 0.9962 | 0.0339 | 0.1162 | 0.0557 | 0.8043 | 0.1872 | 0.6377 | 0.1159 |
+| Resize + Q95 x1 | 0.9998 | 0.0055 | 0.0297 | 0.0215 | 0.8023 | 0.1876 | 0.6342 | 0.1150 |
+| Resize + Q95 x3 | 0.9965 | 0.0280 | 0.1011 | 0.0447 | 0.8031 | 0.1892 | 0.6411 | 0.1221 |
+| Q95 + resize x3 | 0.9966 | 0.0343 | 0.1176 | 0.0552 | 0.8027 | 0.1893 | 0.6413 | 0.1169 |
+| Matched single pass | 0.9967 | 0.0162 | 0.0679 | 0.0300 | 0.8022 | 0.1880 | 0.6359 | 0.1205 |
+
+The small sample and released-data confounds limit interpretation. RAISE references were already resized to approximately one megapixel. Synthetic release dimensions and processing histories differ, and the FFT/DCT preprocessing changes aspect ratio. Possible upstream B-Free exposure to Synthbuster also limits generalization. The analysis does not establish that generator identity causes the observed differences or that these findings extend to unseen generators and internet uploads.
+
+Reproduce these generator-error tables and figure deterministically from the frozen held-out predictions with `.venv/bin/python scripts/analyze_generator_errors.py output/benchmark` (writes `output/benchmark/generator-error-analysis.json`, `output/benchmark/generator-error-analysis.csv`, `output/benchmark/condition-calibration-summary.csv`, and `output/benchmark/figures/generator_error_breakdown.{png,pdf}`).
 
 
 ## An observation-driven forensics assistant
@@ -199,7 +243,7 @@ Start with bash scripts/start-with-models.sh and open http://127.0.0.1:8766. The
 
 Reproduce acquisition with scripts/acquire_benchmark.py; freeze a new study with python -m forensics.benchmark freeze; execute with its run subcommand and a configured detector. The delivered output/benchmark/protocol.json is immutable and identifies the completed pilot. Exact commands are documented in README.md and docs/BENCHMARK_PROTOCOL.md. Re-run tests with .venv/bin/python -m unittest discover -s tests -v.
 
-Detector study hash: 1c974e78ed2d391de1cd1897ac2513c757b2016917d621e3f38c97362ef5aafa. Agent evaluation hash: b34b11babb166808d5ddfdb45b14917ce6b11792c208fb73a8d91e1aa519d6c3. Detailed results: output/benchmark/results/*/predictions.csv and summary.json; output/agent-evaluation/episodes.jsonl and summary.json. Editable narrative: docs/RESEARCH_WRITEUP.md. Figures are exported as PNG and PDF.
+Detector study hash: 1c974e78ed2d391de1cd1897ac2513c757b2016917d621e3f38c97362ef5aafa. Agent evaluation hash: b34b11babb166808d5ddfdb45b14917ce6b11792c208fb73a8d91e1aa519d6c3. Detailed results: output/benchmark/results/*/predictions.csv and summary.json; output/benchmark/generator-error-analysis.{json,csv} and condition-calibration-summary.csv (reproduced with `.venv/bin/python scripts/analyze_generator_errors.py output/benchmark`); output/agent-evaluation/episodes.jsonl and summary.json. Editable narrative: docs/RESEARCH_WRITEUP.md. Figures are exported as PNG and PDF.
 
 ### References
 
